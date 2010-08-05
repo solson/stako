@@ -1,0 +1,15 @@
+# Stack based. Syntax similar to Factor.
+# Name: Stako
+
+# You must put a space between 12 and . to keep parsing simple.
+twelve: (-- x) 12 .
+
+# * is just another word.
+sq: (x -- y) dup *.
+
+# Next line is fine.
+puts: (str --)
+  chars [putc] each.
+
+# No string literals yet.
+main: hello-world puts.
