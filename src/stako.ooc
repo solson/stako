@@ -8,8 +8,6 @@ main: func (args: ArrayList<String>) {
     }
 
     fileName := args[1]
-    fileName println()
-    
     module := Module new(fileName)
 
     source := File new(fileName) read()
