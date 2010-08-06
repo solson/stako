@@ -1,5 +1,5 @@
 import Node, StackEffect, Quotation
-import text/Buffer
+import text/Buffer, structs/ArrayList
 
 Definition: class extends Node {
     name: String
@@ -11,8 +11,14 @@ Definition: class extends Node {
     toString: func -> String {
         buf := Buffer new()
         buf append(name). append(": ").
-            append(stackEffect toString()). append(' ').
-            append(body toString())
+            append(stackEffect toString()). append(' ')
+        words := body body
+        for(i in 0..words size()) {
+            buf append(words[i] toString())
+            if(i != words size() - 1)
+                buf append(' ')
+        }
+        buf append('.')
         buf toString()
     }
 }
