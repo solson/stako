@@ -1,12 +1,18 @@
 import Node, StackEffect, Quotation
-import text/Buffer, structs/ArrayList
+import text/Buffer, structs/[ArrayList, Stack]
 
 Definition: class extends Node {
     name: String
     stackEffect: StackEffect
     body: Quotation
+    primitive? := false
+    primitiveBody: Func (Stack<Data>)
 
     init: func (=name, =stackEffect, =body) {}
+
+    init: func ~primitive (=primitiveBody) {
+        primitive? = true
+    }
 
     toString: func -> String {
         buf := Buffer new()
