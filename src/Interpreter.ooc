@@ -42,12 +42,6 @@ Interpreter: class {
         module vocab["putc"] = Definition new(|stack|
             stack pop() as DataChar chr print()
         )
-        module vocab["nl"] = Definition new(|stack|
-            '\n' print()
-        )
-        module vocab["hello-world"] = Definition new(|stack|
-            stack push(DataString new("Hello, world!"))
-        )
         module vocab["each"] = Definition new(|stack|
             quot := stack pop() as Quotation
             seq := stack pop() as DataString

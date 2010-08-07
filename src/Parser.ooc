@@ -1,5 +1,5 @@
 import io/[File, FileReader, Reader], text/Buffer, structs/ArrayList
-import ast/[Node, Module, Definition, Word, StackEffect, Quotation]
+import ast/[Node, Module, Definition, Word, StackEffect, Quotation, CharLiteral, StringLiteral]
 
 Parser: class {
     module: Module
@@ -27,23 +27,85 @@ Parser: class {
     parseData: func -> Data {
         c := reader peek()
         if(wordChar?(c)) {
-            return Word new(parseWord())
+            Word new(parseWord())
         } else if(c == '[') {
             reader read()
-            return Quotation new(parseUntil(']'))
+            Quotation new(parseUntil(']'))
+        } else if(c == '\'') {
+            parseCharLiteral()
+        } else if(c == '"') {
+            parseStringLiteral()
         } else {
             ParsingError new("Unexpected character: '%c', expected a word or quotation." format(c)) throw()
-            return null
+            null
         }
+    }
+
+    parseCharLiteral: func -> CharLiteral {
+        reader read() // skip opening single quote
+        assertHasMore("Unterminated character literal met end of file.")
+        chr := parseChar()
+        assertChar('\'')
+        reader read() // skip ending single quote
+        CharLiteral new(chr)
+    }
+
+    parseStringLiteral: func -> StringLiteral {
+        buf := Buffer new()
+        reader read() // skip opening double quote
+        while(true) {
+            assertHasMore("Unterminated string literal met end of file.")
+            if(reader peek() == '"')
+                break
+            buf append(parseChar())
+        }
+        reader read() // skip ending double quote
+        StringLiteral new(buf toString())
+    }
+
+    parseChar: func -> Char {
+        c := reader read()
+        if(c == '\\') {
+            assertHasMore("Backslash escape met end of file.")
+            next := reader read()
+            if(next digit?()) {
+                // `next` is part of the octal number
+                reader rewind(1)
+                parseCharOctalEscape()
+            } else {
+                match next {
+                    case 'a' => '\a'
+                    case 'b' => '\b'
+                    case 't' => '\t'
+                    case 'n' => '\n'
+                    case 'v' => '\v'
+                    case 'f' => '\f'
+                    case 'r' => '\r'
+                    case 'e' => 0c33 as Char
+                    case 'x' => parseCharHexEscape()
+                    case => next
+                }
+            }
+        } else {
+            c
+        }
+    }
+
+    parseCharHexEscape: func -> Char {
+        reader read()
+    }
+
+    parseCharOctalEscape: func -> Char {
+        reader read()
     }
 
     parseDefinition: func -> Definition {
         word := parseWord()
         skipWhitespace()
         
-        assertHasMore("Unexpected end of file, expected ':'.")
+        assertChar(':')
+        reader read()
         
-        assertChar(reader read(), ':')
         skipWhitespace()
         
         assertHasMore("Unexpected end of file, expected stack effect or word body.")
@@ -121,7 +183,9 @@ Parser: class {
         word toString()
     }
 
-    assertChar: func (c, expected: Char) {
+    assertChar: func (expected: Char) {
+        assertHasMore("Unexpected end of file, expected: '%c'." format(expected))
+        c := reader peek()
         if(c != expected) {
             ParsingError new("Unexpected character: '%c', expected '%c'." format(c, expected)) throw()
         }
@@ -140,8 +204,8 @@ Parser: class {
     skipWhitespace: func {
         while(reader hasNext?()) {
             c := reader peek()
-            // # comments extend to the end of the line.
             if(c == '#') {
+                // # comments extend to the end of the line.
                 reader skipUntil('\n')
             } else if(!c whitespace?()) {
                 return

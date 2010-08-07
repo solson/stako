@@ -7,10 +7,11 @@
 # * is just another word.
 #sq: (x -- y) dup *.
 
+nl: '\n' putc.
+
 # [] is a quotation.
 print: (str --) [putc] each.
 
 println: (str --) print nl.
 
-# No string literals yet.
-main: hello-world println.
+main: "Hello, world!" println.
