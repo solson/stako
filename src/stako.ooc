@@ -1,5 +1,5 @@
 import structs/ArrayList, text/StringReader, io/File
-import Parser, ast/Module
+import ast/Module, Parser, Interpreter
 
 main: func (args: ArrayList<String>) {
     if(args size() != 2) {
@@ -15,4 +15,7 @@ main: func (args: ArrayList<String>) {
     Parser new(module, reader) parse()
 
     module toString() println()
+
+    interpreter := Interpreter new()
+    interpreter run(module)
 }

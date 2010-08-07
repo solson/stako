@@ -2,14 +2,15 @@
 # Name: Stako
 
 # You must put a space between 12 and . to keep parsing simple.
-twelve: (-- x) 12 .
+#twelve: (-- x) 12 .
 
 # * is just another word.
-sq: (x -- y) dup *.
+#sq: (x -- y) dup *.
 
-# Next line is fine.
-puts: (str --)
-  chars [putc] each.
+# [] is a quotation.
+print: (str --) [putc] each.
+
+println: (str --) print nl.
 
 # No string literals yet.
-main: hello-world puts.
+main: hello-world println.

@@ -1,9 +1,10 @@
 import Definition
-import structs/ArrayList, text/Buffer
+import structs/[ArrayList, HashMap], text/Buffer
 
 Module: class {
     name: String
     definitions := ArrayList<Definition> new()
+    vocab := HashMap<String, Definition> new()
 
     init: func (=name) {}
 
