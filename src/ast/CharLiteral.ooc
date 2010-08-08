@@ -24,7 +24,7 @@ CharLiteral: class extends Data {
                 case '\f' => "\\f"
                 case '\r' => "\\r"
                 case 0c33 => "\\e"
-                case => "\\x%02X" format(c)
+                case => "\\x%02hhX" format(c)
             }
         }
     }
