@@ -44,6 +44,8 @@ Parser: class {
     parseCharLiteral: func -> CharLiteral {
         reader read() // skip opening single quote
         assertHasMore("Unterminated character literal met end of file.")
+        if(reader peek() == '\'')
+            ParsingError new("Encountered empty character literal.") throw()
         chr := parseChar()
         assertChar('\'')
         reader read() // skip ending single quote
