@@ -94,11 +94,30 @@ Parser: class {
     }
 
     parseCharHexEscape: func -> Char {
-        reader read()
+        num := String new(2)
+        for(i in 0..2) {
+            assertHasMore("Unexpected end of file in hexadecimal escape, expected hexadecimal digit.")
+            c := reader read()
+            if(!c hexDigit?())
+                ParsingError new("Invalid hexadecimal digit in escape: '%c'." format(c)) throw()
+            num[i] = c
+        }
+        num toLong(16) as Char
     }
 
     parseCharOctalEscape: func -> Char {
-        reader read()
+        num := String new(3)
+        for(i in 0..3) {
+            assertHasMore("Unexpected end of file in octal escape, expected octal digit.")
+            c := reader read()
+            if(!c octalDigit?())
+                ParsingError new("Invalid octal digit in escape: '%c'." format(c)) throw()
+            num[i] = c
+        }
+        x := num toLong(8)
+        if(x > 0c377)
+            ParsingError new("Invalid number in octal escape: '%s'. Numbers larger than 0c377 cannot fit in a single character (byte)." format(num)) throw()
+        x as Char
     }
 
     parseDefinition: func -> Definition {
