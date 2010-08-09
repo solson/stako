@@ -1,11 +1,9 @@
-# Stack based. Syntax similar to Factor.
-# Name: Stako
+# Stako is stack-based, inspired by Factor.
 
-# You must put a space between 12 and . to keep parsing simple.
-#twelve: (-- x) 12 .
+twelve: (-- x) 12.
 
 # * is just another word.
-#sq: (x -- y) dup *.
+sq: (x -- y) dup *.
 
 nl: '\n' putc.
 
@@ -14,4 +12,10 @@ print: (str --) [putc] each.
 
 println: (str --) print nl.
 
-main: "Hello, world!" println.
+pprint: (obj --) inspect print.
+
+pprintln: (obj --) pprint nl.
+
+main:
+    "Hello, world!" println
+    0b1100 sq pprintln.

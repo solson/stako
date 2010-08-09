@@ -1,21 +1,5 @@
 import structs/[Stack, ArrayList, HashMap]
-import ast/[Node, Module, Definition, Word, Quotation], Resolver
-
-DataString: class extends Data {
-    string: String
-
-    init: func (=string) {}
-
-    toString: func -> String { string }
-}
-
-DataChar: class extends Data {
-    chr: Char
-
-    init: func (=chr) {}
-
-    toString: func -> String { chr toString() }
-}
+import ast/[Node, Module, Definition, Word, Quotation, NumberLiteral, CharLiteral, StringLiteral], Resolver
 
 Interpreter: class {
     datastack := Stack<Data> new()
@@ -39,16 +23,24 @@ Interpreter: class {
         module vocab["dup"] = Definition new(|stack|
             stack push(stack peek())
         )
+        module vocab["*"] = Definition new(|stack|
+            y := stack pop() as NumberLiteral number
+            x := stack pop() as NumberLiteral number
+            stack push(NumberLiteral new(x * y))
+        )
         module vocab["putc"] = Definition new(|stack|
-            stack pop() as DataChar chr print()
+            stack pop() as CharLiteral chr print()
         )
         module vocab["each"] = Definition new(|stack|
             quot := stack pop() as Quotation
-            seq := stack pop() as DataString
+            seq := stack pop() as StringLiteral
             for(x in seq string) {
-                stack push(DataChar new(x))
+                stack push(CharLiteral new(x))
                 this call(quot)
             }
+        )
+        module vocab["inspect"] = Definition new(|stack|
+            stack push(StringLiteral new(stack pop() toString()))
         )
         
         Resolver new(module) resolve()
