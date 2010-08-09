@@ -131,38 +131,22 @@ Parser: class {
             reader read()
             assertHasMore("Unexpected end of file in number or word literal.")
             c1 := reader read()
-            if(c1 digit?()) {
-                reader reset(mark)
-                parseDecimalNumber(mark)
-            } else {
-                match(c1) {
-                    case 'x' => parseHexNumber(mark)
-                    case 'c' => parseOctalNumber(mark)
-                    case 'b' => parseBinaryNumber(mark)
+            if(!c1 digit?()) {
+                return match(c1) {
+                    case 'x' =>
+                        parseNumberWithBase(mark, 16, "hexadecimal", |c| c hexDigit?())
+                    case 'c' =>
+                        parseNumberWithBase(mark, 8, "octal", |c| c octalDigit?())
+                    case 'b' =>
+                        parseNumberWithBase(mark, 2, "binary", |c| "01" contains?(c))
                     case =>
                         reader reset(mark)
                         null
                 }
             }
-        } else {
-            parseDecimalNumber(mark)
         }
-    }
-
-    parseDecimalNumber: func (mark: Long) -> NumberLiteral {
+        reader reset(mark)
         parseNumberWithBase(mark, 10, "decimal", |c| c digit?())
-    }
-
-    parseHexNumber: func (mark: Long) -> NumberLiteral {
-        parseNumberWithBase(mark, 16, "hexadecimal", |c| c hexDigit?())
-    }
-
-    parseOctalNumber: func (mark: Long) -> NumberLiteral {
-        parseNumberWithBase(mark, 8, "octal", |c| c octalDigit?())
-    }
-
-    parseBinaryNumber: func (mark: Long) -> NumberLiteral {
-        parseNumberWithBase(mark, 2, "binary", |c| c == '0' || c == '1')
     }
 
     parseNumberWithBase: func (mark: Long, baseNumber: Int, baseName: String,
