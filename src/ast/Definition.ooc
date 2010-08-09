@@ -20,7 +20,7 @@ Definition: class extends Node {
         if(primitive?) {
             buf append("(primitive)")
         } else {
-            if(stackEffect inputs size() > 0 && stackEffect outputs size() > 0)
+            if(stackEffect inputs size() > 0 || stackEffect outputs size() > 0)
                 buf append(stackEffect toString()). append(' ')
             words := body body
             for(i in 0..words size()) {
