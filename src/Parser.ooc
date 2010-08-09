@@ -95,8 +95,9 @@ Parser: class {
     }
 
     parseData: func -> Data {
-        c := reader peek()
+        c := reader read()
         if(wordChar?(c)) {
+            reader rewind(1)
             num := parseNumber()
             if(num != null) {
                 num
@@ -104,11 +105,9 @@ Parser: class {
                 Word new(parseWord())
             }
         } else if(c == '\\') {
-            reader read()
             skipWhitespace()
             Wrapper new(parseData())
         } else if(c == '[') {
-            reader read()
             Quotation new(parseUntil(']'))
         } else if(c == '\'') {
             parseCharLiteral()
@@ -179,7 +178,6 @@ Parser: class {
     }
 
     parseCharLiteral: func -> CharLiteral {
-        reader read() // skip opening single quote
         assertHasMore("Unterminated character literal met end of file.")
         if(reader peek() == '\'')
             ParsingError new("Encountered empty character literal.") throw()
@@ -190,7 +188,6 @@ Parser: class {
 
     parseStringLiteral: func -> StringLiteral {
         buf := Buffer new()
-        reader read() // skip opening double quote
         while(true) {
             assertHasMore("Unterminated string literal met end of file.")
             if(reader peek() == '"')
