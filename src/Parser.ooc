@@ -150,62 +150,28 @@ Parser: class {
     }
 
     parseDecimalNumber: func (mark: Long) -> NumberLiteral {
-        num := Buffer new()
-        while(true) {
-            assertHasMore("Unexpected end of file in decimal number.")
-            c := reader peek()
-            if(c digit?()) {
-                num append(reader read())
-            } else if(!wordChar?(c)) {
-                break
-            } else {
-                reader reset(mark)
-                return null
-            }
-        }
-        NumberLiteral new(num toString() toLLong())
+        parseNumberWithBase(mark, 10, "decimal", |c| c digit?())
     }
 
     parseHexNumber: func (mark: Long) -> NumberLiteral {
-        num := Buffer new()
-        while(true) {
-            assertHasMore("Unexpected end of file in hexadecimal number.")
-            c := reader peek()
-            if(c hexDigit?()) {
-                num append(reader read())
-            } else if(!wordChar?(c)) {
-                break
-            } else {
-                reader reset(mark)
-                return null
-            }
-        }
-        NumberLiteral new(num toString() toLLong(16))
+        parseNumberWithBase(mark, 16, "hexadecimal", |c| c hexDigit?())
     }
 
     parseOctalNumber: func (mark: Long) -> NumberLiteral {
-        num := Buffer new()
-        while(true) {
-            assertHasMore("Unexpected end of file in octal number.")
-            c := reader peek()
-            if(c octalDigit?()) {
-                num append(reader read())
-            } else if(!wordChar?(c)) {
-                break
-            } else {
-                reader reset(mark)
-                return null
-            }
-        }
-        NumberLiteral new(num toString() toLLong(8))
+        parseNumberWithBase(mark, 8, "octal", |c| c octalDigit?())
     }
 
     parseBinaryNumber: func (mark: Long) -> NumberLiteral {
+        parseNumberWithBase(mark, 2, "binary", |c| c == '0' || c == '1')
+    }
+
+    parseNumberWithBase: func (mark: Long, baseNumber: Int, baseName: String,
+                               pred: Func (Char) -> Bool) -> NumberLiteral {
         num := Buffer new()
         while(true) {
-            assertHasMore("Unexpected end of file in binary number.")
+            assertHasMore("Unexpected end of file in " + baseName + " number.")
             c := reader peek()
-            if(c == '0' || c == '1') {
+            if(pred(c)) {
                 num append(reader read())
             } else if(!wordChar?(c)) {
                 break
@@ -214,7 +180,7 @@ Parser: class {
                 return null
             }
         }
-        NumberLiteral new(num toString() toLLong(2))
+        NumberLiteral new(num toString() toLLong(baseNumber))
     }
     
     parseWord: func -> String {
