@@ -14,8 +14,6 @@ main: func (args: ArrayList<String>) {
     reader := StringReader new(source)
     Parser new(module, reader) parse()
 
-    module toString() println()
-
     interpreter := Interpreter new()
     interpreter run(module)
 }
