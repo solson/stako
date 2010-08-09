@@ -1,5 +1,5 @@
 import io/[File, FileReader, Reader], text/Buffer, structs/ArrayList
-import ast/[Node, Module, Definition, Word, StackEffect, Quotation, CharLiteral, StringLiteral]
+import ast/[Node, Module, Definition, Word, StackEffect, Quotation, NumberLiteral, CharLiteral, StringLiteral]
 
 Parser: class {
     module: Module
@@ -99,7 +99,12 @@ Parser: class {
     parseData: func -> Data {
         c := reader peek()
         if(wordChar?(c)) {
-            Word new(parseWord())
+            num := parseNumber()
+            if(num != null) {
+                num
+            } else {
+                Word new(parseWord())
+            }
         } else if(c == '[') {
             reader read()
             Quotation new(parseUntil(']'))
@@ -112,10 +117,106 @@ Parser: class {
             null
         }
     }
+
+    parseNumber: func -> NumberLiteral {
+        mark := reader mark()
+        c := reader peek()
+        if(!c digit?())
+            return null
+        if(c == '0') {
+            reader read()
+            assertHasMore("Unexpected end of file in number or word literal.")
+            c1 := reader read()
+            if(c1 digit?()) {
+                reader reset(mark)
+                parseDecimalNumber(mark)
+            } else {
+                match(c1) {
+                    case 'x' => parseHexNumber(mark)
+                    case 'c' => parseOctalNumber(mark)
+                    case 'b' => parseBinaryNumber(mark)
+                    case =>
+                        reader reset(mark)
+                        null
+                }
+            }
+        } else {
+            parseDecimalNumber(mark)
+        }
+    }
+
+    parseDecimalNumber: func (mark: Long) -> NumberLiteral {
+        num := Buffer new()
+        while(true) {
+            assertHasMore("Unexpected end of file in decimal number.")
+            c := reader peek()
+            if(c digit?()) {
+                num append(reader read())
+            } else if(!wordChar?(c)) {
+                break
+            } else {
+                reader reset(mark)
+                return null
+            }
+        }
+        NumberLiteral new(num toString() toLLong())
+    }
+
+    parseHexNumber: func (mark: Long) -> NumberLiteral {
+        num := Buffer new()
+        while(true) {
+            assertHasMore("Unexpected end of file in hexadecimal number.")
+            c := reader peek()
+            if(c hexDigit?()) {
+                num append(reader read())
+            } else if(!wordChar?(c)) {
+                break
+            } else {
+                reader reset(mark)
+                return null
+            }
+        }
+        NumberLiteral new(num toString() toLLong(16))
+    }
+
+    parseOctalNumber: func (mark: Long) -> NumberLiteral {
+        num := Buffer new()
+        while(true) {
+            assertHasMore("Unexpected end of file in octal number.")
+            c := reader peek()
+            if(c octalDigit?()) {
+                num append(reader read())
+            } else if(!wordChar?(c)) {
+                break
+            } else {
+                reader reset(mark)
+                return null
+            }
+        }
+        NumberLiteral new(num toString() toLLong(8))
+    }
+
+    parseBinaryNumber: func (mark: Long) -> NumberLiteral {
+        num := Buffer new()
+        while(true) {
+            assertHasMore("Unexpected end of file in binary number.")
+            c := reader peek()
+            if(c == '0' || c == '1') {
+                num append(reader read())
+            } else if(!wordChar?(c)) {
+                break
+            } else {
+                reader reset(mark)
+                return null
+            }
+        }
+        NumberLiteral new(num toString() toLLong(2))
+    }
     
     parseWord: func -> String {
         word := Buffer new()
-        while(reader hasNext?()) {
+        while(true) {
+            assertHasMore("Unexpected end of file in word.")
             if(wordChar?(reader peek())) {
                 word append(reader read())
             } else {
