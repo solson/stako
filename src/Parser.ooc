@@ -29,8 +29,6 @@ Parser: class {
         skipWhitespace()
         
         assertChar(':')
-        reader read()
-        
         skipWhitespace()
         
         assertHasMore("Unexpected end of file, expected stack effect or word body.")
@@ -187,7 +185,6 @@ Parser: class {
             ParsingError new("Encountered empty character literal.") throw()
         chr := parseChar()
         assertChar('\'')
-        reader read() // skip ending single quote
         CharLiteral new(chr)
     }
 
@@ -275,7 +272,7 @@ Parser: class {
 
     assertChar: func (expected: Char) {
         assertHasMore("Unexpected end of file, expected: '%c'." format(expected))
-        c := reader peek()
+        c := reader read()
         if(c != expected) {
             ParsingError new("Unexpected character: '%c', expected '%c'." format(c, expected)) throw()
         }
