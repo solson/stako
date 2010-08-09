@@ -114,7 +114,7 @@ Parser: class {
         } else if(c == '"') {
             parseStringLiteral()
         } else {
-            ParsingError new("Unexpected character: '%c', expected a word or quotation." format(c)) throw()
+            ParsingError new("Unexpected character: '%c', expected a word or literal." format(c)) throw()
             null
         }
     }
