@@ -1,21 +1,28 @@
 # Stako is stack-based, inspired by Factor.
 
-twelve: (-- x) 12.
-
-# * is just another word.
 sq: (x -- y) dup *.
 
-nl: '\n' putc.
+nl: '\n' write1.
 
-# [] is a quotation.
-print: (str --) [putc] each.
+write: (str --) [write1] each.
 
-println: (str --) print nl.
+print: (str --) write nl.
 
-pprint: (obj --) inspect print.
+pprint: (obj --) inspect write.
 
-pprintln: (obj --) pprint nl.
+pp: (obj --) pprint nl.
 
 main:
-    "Hello, world!" println
-    0b1100 sq pprintln.
+    "Hello, world!" print
+    
+    # The many twelves
+    12 sq pp
+    00012 sq pp
+    0xC sq pp
+    0xc sq pp
+    0c14 sq pp
+    0b1100 sq pp
+
+    \sq see
+    \nl see
+    \dup see.

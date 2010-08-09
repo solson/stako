@@ -1,5 +1,5 @@
 import structs/[ArrayList, HashMap]
-import ast/[Node, Module, Definition, Word, Quotation]
+import ast/[Node, Module, Definition, Word, Quotation, Wrapper]
 
 Resolver: class {
     module: Module
@@ -23,6 +23,9 @@ Resolver: class {
                 if(!module vocab contains?(word name))
                     Exception new(This, "Encountered undefined word: '%s'." format(word name)) throw()
                 word definition = module vocab[word name]
+            case Wrapper =>
+                wrapper := data as Wrapper
+                resolveOne(wrapper data)
             case Quotation =>
                 for(data_ in data as Quotation body) {
                     resolveOne(data_)

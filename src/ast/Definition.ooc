@@ -10,19 +10,23 @@ Definition: class extends Node {
 
     init: func (=name, =stackEffect, =body) {}
 
-    init: func ~primitive (=primitiveBody) {
+    init: func ~primitive (=name, =primitiveBody) {
         primitive? = true
     }
 
     toString: func -> String {
         buf := Buffer new()
-        buf append(name). append(": ").
-            append(stackEffect toString()). append(' ')
-        words := body body
-        for(i in 0..words size()) {
-            buf append(words[i] toString())
-            if(i != words size() - 1)
-                buf append(' ')
+        buf append(name). append(": ")
+        if(primitive?) {
+            buf append("(primitive)")
+        } else {
+            buf append(stackEffect toString()). append(' ')
+            words := body body
+            for(i in 0..words size()) {
+                buf append(words[i] toString())
+                if(i != words size() - 1)
+                    buf append(' ')
+            }
         }
         buf append('.')
         buf toString()

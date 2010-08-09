@@ -1,5 +1,5 @@
 import io/[File, FileReader, Reader], text/Buffer, structs/ArrayList
-import ast/[Node, Module, Definition, Word, StackEffect, Quotation, NumberLiteral, CharLiteral, StringLiteral]
+import ast/[Node, Module, Definition, Word, StackEffect, Quotation, NumberLiteral, CharLiteral, StringLiteral, Wrapper]
 
 Parser: class {
     module: Module
@@ -105,6 +105,10 @@ Parser: class {
             } else {
                 Word new(parseWord())
             }
+        } else if(c == '\\') {
+            reader read()
+            skipWhitespace()
+            Wrapper new(parseData())
         } else if(c == '[') {
             reader read()
             Quotation new(parseUntil(']'))
