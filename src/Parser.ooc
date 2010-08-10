@@ -164,9 +164,11 @@ Parser: class {
     parseWord: func -> String {
         word := Buffer new()
         while(reader hasNext?()) {
-            if(wordChar?(reader peek())) {
-                word append(read())
+            c := read()
+            if(wordChar?(c)) {
+                word append(c)
             } else {
+                rewind(1)
                 break
             }
         }
