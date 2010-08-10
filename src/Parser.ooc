@@ -288,7 +288,7 @@ Parser: class {
     }
 
     mark: func -> (Long, Int, Int) {
-        return (reader mark(), line, column)
+        (reader mark(), line, column)
     }
 
     reset: func (mark: Long, =line, =column) {
