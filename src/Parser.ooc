@@ -206,22 +206,19 @@ Parser: class {
             assertHasMore("Backslash escape in character or string met end of file.")
             next := read()
             if(next digit?()) {
-                // `next` is part of the octal number
-                rewind(1)
+                rewind(1) // `next` is part of the octal number
                 parseCharOctalEscape()
-            } else {
-                match next {
-                    case 'a' => '\a'
-                    case 'b' => '\b'
-                    case 't' => '\t'
-                    case 'n' => '\n'
-                    case 'v' => '\v'
-                    case 'f' => '\f'
-                    case 'r' => '\r'
-                    case 'e' => 0c33 as Char
-                    case 'x' => parseCharHexEscape()
-                    case => next
-                }
+            } else match(next) {
+                case 'a' => '\a'
+                case 'b' => '\b'
+                case 't' => '\t'
+                case 'n' => '\n'
+                case 'v' => '\v'
+                case 'f' => '\f'
+                case 'r' => '\r'
+                case 'e' => 0c33 as Char
+                case 'x' => parseCharHexEscape()
+                case     => next
             }
         } else {
             c
