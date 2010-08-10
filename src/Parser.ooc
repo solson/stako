@@ -298,9 +298,10 @@ Parser: class {
     assertChar: func (expected: Char) {
         expected_ := escape(expected)
         assertHasMore("Unexpected end of file, expected: '%s'." format(expected_))
-        c := read()
+        c := reader peek()
         if(c != expected)
             error("Unexpected character: '%s', expected '%s'." format(escape(c), expected_))
+        read()
     }
 
     assertHasMore: func (msg: String) {
