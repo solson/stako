@@ -27,7 +27,7 @@ Parser: class {
             } else if(wordChar?(c)) {
                 module definitions add(parseDefinition())
             } else {
-                error("Unexpected character: '%c', expected a word definition." format(c))
+                error("Unexpected character: '%s', expected a word definition.", c)
             }
         }
     }
@@ -80,7 +80,7 @@ Parser: class {
                 read()
                 break
             } else {
-                error("Unexpected character: '%c', expected a word or ')'." format(c))
+                error("Unexpected character: '%s', expected a word or ')'.", c)
             }
         }
         stackEffect
@@ -90,7 +90,7 @@ Parser: class {
         datas := ArrayList<Data> new()
         while(true) {
             skipWhitespace()
-            assertHasMore("Unexpected end of file, expected '%c'." format(end))
+            assertHasMore("Unexpected end of file, expected '%s'." format(escape(end)))
             if(reader peek() == end) {
                 read()
                 break
@@ -119,7 +119,7 @@ Parser: class {
             case '\'' => parseCharLiteral()
             case '"'  => parseStringLiteral()
             case =>
-                error("Unexpected character: '%c', expected a word or literal." format(c))
+                error("Unexpected character: '%s', expected a word or literal.", c)
                 null
         }
     }
@@ -234,7 +234,7 @@ Parser: class {
             assertHasMore("Unexpected end of file in hexadecimal escape, expected hexadecimal digit.")
             c := read()
             if(!c hexDigit?())
-                error("Invalid hexadecimal digit in escape: '%c'." format(c))
+                error("Invalid hexadecimal digit in escape: '%s'.", c)
             num[i] = c
         }
         num toLong(16) as Char
@@ -246,7 +246,7 @@ Parser: class {
             assertHasMore("Unexpected end of file in octal escape, expected octal digit.")
             c := read()
             if(!c octalDigit?())
-                error("Invalid octal digit in escape: '%c'." format(c))
+                error("Invalid octal digit in escape: '%s'.", c)
             num[i] = c
         }
         x := num toLong(8)
@@ -296,10 +296,11 @@ Parser: class {
     }
 
     assertChar: func (expected: Char) {
-        assertHasMore("Unexpected end of file, expected: '%c'." format(expected))
+        expected_ := escape(expected)
+        assertHasMore("Unexpected end of file, expected: '%s'." format(expected_))
         c := read()
         if(c != expected)
-            error("Unexpected character: '%c', expected '%c'." format(c, expected))
+            error("Unexpected character: '%s', expected '%s'." format(escape(c), expected_))
     }
 
     assertHasMore: func (msg: String) {
@@ -317,6 +318,14 @@ Parser: class {
         error append(msg). append('\n'). append(errLine). append('\n').
               append(" " * column). append('^')
         ParsingError new(fileName, line, column, error toString()) throw()
+    }
+
+    error: func ~withEscapedChar (msg: String, chr: Char) {
+        error(msg format(escape(chr)))
+    }
+
+    escape: static func (chr: Char) -> String {
+        CharLiteral escape(chr, '\'')
     }
 
     wordChar?: static func (c: Char) -> Bool {
