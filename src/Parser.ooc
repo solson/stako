@@ -315,7 +315,7 @@ Parser: class {
         errLine := sourceReader readLine()
         
         error append(msg). append('\n'). append(errLine). append('\n').
-              append(" " * column). append("^")
+              append(" " * column). append('^')
         ParsingError new(fileName, line, column, error toString()) throw()
     }
 
