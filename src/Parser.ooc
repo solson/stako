@@ -149,10 +149,11 @@ Parser: class {
     parseNumberWithBase: func (baseNumber: Int, pred: Func (Char) -> Bool) -> NumberLiteral {
         num := Buffer new()
         while(reader hasNext?()) {
-            c := reader peek()
+            c := read()
             if(pred(c)) {
-                num append(read())
+                num append(c)
             } else if(!wordChar?(c)) {
+                rewind(1)
                 break
             } else {
                 return null
