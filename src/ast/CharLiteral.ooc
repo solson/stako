@@ -14,18 +14,16 @@ CharLiteral: class extends Data {
             "\\" + delimiter
         } else if(c printable?()) {
             c toString()
-        } else {
-            match c {
-                case '\a' => "\\a"
-                case '\b' => "\\b"
-                case '\t' => "\\t"
-                case '\n' => "\\n"
-                case '\v' => "\\v"
-                case '\f' => "\\f"
-                case '\r' => "\\r"
-                case 0c33 => "\\e"
-                case => "\\x%02hhX" format(c)
-            }
+        } else match(c) {
+            case '\a' => "\\a"
+            case '\b' => "\\b"
+            case '\t' => "\\t"
+            case '\n' => "\\n"
+            case '\v' => "\\v"
+            case '\f' => "\\f"
+            case '\r' => "\\r"
+            case 0c33 => "\\e"
+            case => "\\x%02hhX" format(c)
         }
     }
 }
