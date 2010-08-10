@@ -284,7 +284,7 @@ Parser: class {
 
     rewind: func (offset: Int) {
         reader rewind(offset)
-        column -= 1
+        column -= offset
     }
 
     mark: func -> (Long, Int, Int) {
