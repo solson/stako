@@ -1,14 +1,22 @@
-import io/[File, FileReader, Reader], text/Buffer, structs/ArrayList
+import io/[File, FileReader, Reader], text/[Buffer, StringReader], structs/ArrayList
 import ast/[Node, Module, Definition, Word, StackEffect, Quotation, NumberLiteral, CharLiteral, StringLiteral, Wrapper]
 
 Parser: class {
     module: Module
+    source: String
     reader: Reader
-    
-    init: func (=module, =reader) {}
 
-    init: func ~withFileName (=module, fileName: String) {
-        reader = FileReader new(fileName)
+    fileName := "(no-file)"
+    line     := 1
+    column   := 0
+
+    init: func (=module, =fileName) {
+        source = File new(fileName) read()
+        reader = StringReader new(source)
+    }
+
+    init: func ~withSource (=module, =fileName, =source) {
+        reader = StringReader new(source)
     }
 
     parse: func {
@@ -19,7 +27,7 @@ Parser: class {
             } else if(wordChar?(c)) {
                 module definitions add(parseDefinition())
             } else {
-                ParsingError new("Unexpected character: '%c', expected a word definition." format(c)) throw()
+                error("Unexpected character: '%c', expected a word definition." format(c))
             }
         }
     }
@@ -46,10 +54,9 @@ Parser: class {
         // The stack effect, if omitted in the source code, is
         // assumed to be (--), ie. a word that takes no inputs and
         // leaves no outputs.
-        if(reader peek() != '(') {
+        if(reader peek() != '(')
             return stackEffect
-        }
-        reader read()
+        read()
 
         gotDivider? := false
 
@@ -68,16 +75,15 @@ Parser: class {
                     stackEffect outputs add(word)
                 }
             } else if(c == ')') {
-                reader read()
+                if(!gotDivider?)
+                    error("Stack effect had no divider ('--').")
+                read()
                 break
             } else {
-                ParsingError new("Unexpected character: '%c', expected a word or ')'." format(c)) throw()
+                error("Unexpected character: '%c', expected a word or ')'." format(c))
             }
         }
-        if(!gotDivider?) {
-            ParsingError new("Stack effect had no divider '--'.") throw()
-        }
-        return stackEffect
+        stackEffect
     }
 
     parseUntil: func (end: Char) -> ArrayList<Data> {
@@ -86,78 +92,69 @@ Parser: class {
             skipWhitespace()
             assertHasMore("Unexpected end of file, expected '%c'." format(end))
             if(reader peek() == end) {
-                reader read()
+                read()
                 break
             }
             datas add(parseData())
         }
-        return datas
+        datas
     }
 
     parseData: func -> Data {
-        c := reader read()
+        c := read()
         if(wordChar?(c)) {
-            reader rewind(1)
+            rewind(1)
+            column -= 1
+            (mark_, lineMark, columnMark) := mark()
             num := parseNumber()
             if(num != null) {
                 num
             } else {
+                reset(mark_, lineMark, columnMark)
                 Word new(parseWord())
             }
-        } else if(c == '\\') {
-            skipWhitespace()
-            Wrapper new(parseData())
-        } else if(c == '[') {
-            Quotation new(parseUntil(']'))
-        } else if(c == '\'') {
-            parseCharLiteral()
-        } else if(c == '"') {
-            parseStringLiteral()
-        } else {
-            ParsingError new("Unexpected character: '%c', expected a word or literal." format(c)) throw()
-            null
+        } else match(c) {
+            case '\\' => parseWrapper()
+            case '['  => Quotation new(parseUntil(']'))
+            case '\'' => parseCharLiteral()
+            case '"'  => parseStringLiteral()
+            case =>
+                error("Unexpected character: '%c', expected a word or literal." format(c))
+                null
         }
     }
 
     parseNumber: func -> NumberLiteral {
-        mark := reader mark()
+        (mark_, lineMark, columnMark) := mark()
         c := reader peek()
         if(!c digit?())
             return null
         if(c == '0') {
-            reader read()
+            read()
             assertHasMore("Unexpected end of file in number or word literal.")
-            c1 := reader read()
+            c1 := read()
             if(!c1 digit?()) {
                 return match(c1) {
-                    case 'x' =>
-                        parseNumberWithBase(mark, 16, "hexadecimal", |c| c hexDigit?())
-                    case 'c' =>
-                        parseNumberWithBase(mark, 8, "octal", |c| c octalDigit?())
-                    case 'b' =>
-                        parseNumberWithBase(mark, 2, "binary", |c| "01" contains?(c))
-                    case =>
-                        reader reset(mark)
-                        null
+                    case 'x' => parseNumberWithBase(16, |c| c hexDigit?())
+                    case 'c' => parseNumberWithBase(8,  |c| c octalDigit?())
+                    case 'b' => parseNumberWithBase(2,  |c| "01" contains?(c))
+                    case => null
                 }
             }
         }
-        reader reset(mark)
-        parseNumberWithBase(mark, 10, "decimal", |c| c digit?())
+        reset(mark_, lineMark, columnMark)
+        parseNumberWithBase(10, |c| c digit?())
     }
 
-    parseNumberWithBase: func (mark: Long, baseNumber: Int, baseName: String,
-                               pred: Func (Char) -> Bool) -> NumberLiteral {
+    parseNumberWithBase: func (baseNumber: Int, pred: Func (Char) -> Bool) -> NumberLiteral {
         num := Buffer new()
-        while(true) {
-            assertHasMore("Unexpected end of file in " + baseName + " number.")
+        while(reader hasNext?()) {
             c := reader peek()
             if(pred(c)) {
-                num append(reader read())
+                num append(read())
             } else if(!wordChar?(c)) {
                 break
             } else {
-                reader reset(mark)
                 return null
             }
         }
@@ -166,10 +163,9 @@ Parser: class {
     
     parseWord: func -> String {
         word := Buffer new()
-        while(true) {
-            assertHasMore("Unexpected end of file in word.")
+        while(reader hasNext?()) {
             if(wordChar?(reader peek())) {
-                word append(reader read())
+                word append(read())
             } else {
                 break
             }
@@ -177,10 +173,16 @@ Parser: class {
         word toString()
     }
 
+    parseWrapper: func -> Wrapper {
+        skipWhitespace()
+        assertHasMore("Unexpected end of file after wrapper ('\\'), expected word.")
+        Wrapper new(parseData())
+    }
+
     parseCharLiteral: func -> CharLiteral {
         assertHasMore("Unterminated character literal met end of file.")
         if(reader peek() == '\'')
-            ParsingError new("Encountered empty character literal.") throw()
+            error("Encountered empty character literal.")
         chr := parseChar()
         assertChar('\'')
         CharLiteral new(chr)
@@ -194,18 +196,18 @@ Parser: class {
                 break
             buf append(parseChar())
         }
-        reader read() // skip ending double quote
+        read() // skip ending double quote
         StringLiteral new(buf toString())
     }
 
     parseChar: func -> Char {
-        c := reader read()
+        c := read()
         if(c == '\\') {
-            assertHasMore("Backslash escape met end of file.")
-            next := reader read()
+            assertHasMore("Backslash escape in character or string met end of file.")
+            next := read()
             if(next digit?()) {
                 // `next` is part of the octal number
-                reader rewind(1)
+                rewind(1)
                 parseCharOctalEscape()
             } else {
                 match next {
@@ -230,9 +232,9 @@ Parser: class {
         num := String new(2)
         for(i in 0..2) {
             assertHasMore("Unexpected end of file in hexadecimal escape, expected hexadecimal digit.")
-            c := reader read()
+            c := read()
             if(!c hexDigit?())
-                ParsingError new("Invalid hexadecimal digit in escape: '%c'." format(c)) throw()
+                error("Invalid hexadecimal digit in escape: '%c'." format(c))
             num[i] = c
         }
         num toLong(16) as Char
@@ -242,14 +244,14 @@ Parser: class {
         num := String new(3)
         for(i in 0..3) {
             assertHasMore("Unexpected end of file in octal escape, expected octal digit.")
-            c := reader read()
+            c := read()
             if(!c octalDigit?())
-                ParsingError new("Invalid octal digit in escape: '%c'." format(c)) throw()
+                error("Invalid octal digit in escape: '%c'." format(c))
             num[i] = c
         }
         x := num toLong(8)
         if(x > 0c377)
-            ParsingError new("Invalid number in octal escape: '%s'. Numbers larger than 0c377 cannot fit in a single character (byte)." format(num)) throw()
+            error("Invalid number in octal escape: '%s'. Numbers larger than 0c377 cannot fit in a single character (byte)." format(num))
         x as Char
     }
 
@@ -259,26 +261,62 @@ Parser: class {
             if(c == '#') {
                 // # comments extend to the end of the line.
                 reader skipUntil('\n')
+                line += 1
+                column = 0
             } else if(!c whitespace?()) {
                 return
             } else {
-                reader read()
+                read()
             }
         }
     }
 
+    read: func -> Char {
+        c := reader read()
+        if(c == '\n') {
+            line += 1
+            column = 0
+        } else {
+            column += 1
+        }
+        return c
+    }
+
+    rewind: func (offset: Int) {
+        reader rewind(offset)
+        column -= 1
+    }
+
+    mark: func -> (Long, Int, Int) {
+        return (reader mark(), line, column)
+    }
+
+    reset: func (mark: Long, =line, =column) {
+        reader reset(mark)
+    }
+
     assertChar: func (expected: Char) {
         assertHasMore("Unexpected end of file, expected: '%c'." format(expected))
-        c := reader read()
-        if(c != expected) {
-            ParsingError new("Unexpected character: '%c', expected '%c'." format(c, expected)) throw()
-        }
+        c := read()
+        if(c != expected)
+            error("Unexpected character: '%c', expected '%c'." format(c, expected))
     }
 
     assertHasMore: func (msg: String) {
-        if(!reader hasNext?()) {
-            ParsingError new(msg) throw()
-        }
+        if(!reader hasNext?())
+            error(msg)
+    }
+
+    error: func (msg: String) {
+        error := Buffer new()
+        
+        sourceReader := StringReader new(source)
+        (line - 1) times(|| sourceReader skipLine())
+        errLine := sourceReader readLine()
+        
+        error append(msg). append('\n'). append(errLine). append('\n').
+              append(" " * column). append("^")
+        ParsingError new(fileName, line, column, error toString()) throw()
     }
 
     wordChar?: static func (c: Char) -> Bool {
@@ -289,4 +327,8 @@ Parser: class {
 ParsingError: class extends Exception {
     init: super func ~originMsg
     init: super func ~noOrigin
+
+    init: func ~withPosition (fileName: String, line, column: Int, message: String) {
+        this msg = "%s:%i:%i %s" format(fileName, line, column, message)
+    }
 }

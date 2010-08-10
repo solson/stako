@@ -10,9 +10,7 @@ main: func (args: ArrayList<String>) {
     fileName := args[1]
     module := Module new(fileName)
 
-    source := File new(fileName) read()
-    reader := StringReader new(source)
-    Parser new(module, reader) parse()
+    Parser new(module, fileName, File new(fileName) read()) parse()
 
     interpreter := Interpreter new()
     interpreter run(module)
