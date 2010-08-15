@@ -330,7 +330,7 @@ Parser: class {
     }
 
     wordChar?: static func (c: Char) -> Bool {
-        c alphaNumeric?() || "`~!@$%^&*-_=+|;,/?" contains?(c)
+        c alphaNumeric?() || "`~!@$%^&*-_=+|;,<>/?" contains?(c)
     }
 }
 
