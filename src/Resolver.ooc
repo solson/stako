@@ -1,17 +1,13 @@
 import structs/[ArrayList, HashMap]
-import ast/[Node, Module, Definition, Word, Quotation, Wrapper]
+import ast/[Node, Vocab, Definition, Word, Quotation, Wrapper]
 
 Resolver: class {
-    module: Module
+    vocab: Vocab
 
-    init: func (=module) {}
+    init: func (=vocab) {}
 
-    resolve: func {
-        for(def in module definitions) {
-            module vocab[def name] = def
-        }
-        
-        for(def in module definitions) {
+    resolve: func {        
+        for(def in vocab definitions) {
             resolveOne(def body)
         }
     }
@@ -20,9 +16,9 @@ Resolver: class {
         match(data class) {
             case Word =>
                 word := data as Word
-                if(!module vocab contains?(word name))
+                if(!vocab definitions contains?(word name))
                     Exception new(This, "Encountered undefined word: '%s'." format(word name)) throw()
-                word definition = module vocab[word name]
+                word definition = vocab definitions[word name]
             case Wrapper =>
                 wrapper := data as Wrapper
                 resolveOne(wrapper data)

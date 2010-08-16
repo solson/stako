@@ -1,5 +1,5 @@
 import structs/ArrayList, text/StringReader, io/File
-import ast/Module, Parser, Interpreter, Compiler
+import ast/Vocab, Parser, Interpreter, Compiler
 
 main: func (args: ArrayList<String>) {
     if(args size() != 2) {
@@ -8,9 +8,11 @@ main: func (args: ArrayList<String>) {
     }
 
     fileName := args[1]
-    module := Module new(fileName)
+    vocab := Vocab new(fileName)
 
-    Parser new(module, fileName, File new(fileName) read()) parse()
+    Parser new(vocab, fileName, File new(fileName) read()) parse()
+
+//    vocab toString() println()
 
 //    Interpreter new() run(module)
 //    compiler := Compiler new(module)
