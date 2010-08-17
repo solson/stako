@@ -336,10 +336,10 @@ Parser: class {
 }
 
 ParsingError: class extends Exception {
-    init: super func ~originMsg
+    init: super func
     init: super func ~noOrigin
 
     init: func ~withPosition (fileName: String, line, column: Int, message: String) {
-        this msg = "%s:%i:%i %s" format(fileName, line, column, message)
+        this message = "%s:%i:%i %s" format(fileName, line, column, message)
     }
 }
