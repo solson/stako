@@ -6,16 +6,15 @@ Interpreter: class {
 
     call: func (quot: Quotation) {
         for(data in quot body) {
-            match(data class) {
-                case Word =>
-                    wordDef := data as Word definition
+            match(data) {
+                case word: Word =>
+                    wordDef := word definition
                     if(wordDef primitive?) {
                         wordDef primitiveBody(datastack)
                     } else {
                         this call(wordDef body)
                     }
-                case Wrapper =>
-                    wrapper := data as Wrapper
+                case wrapper: Wrapper =>
                     datastack push(wrapper data)
                 case =>
                     datastack push(data)

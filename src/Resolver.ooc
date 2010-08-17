@@ -13,17 +13,15 @@ Resolver: class {
     }
 
     resolveOne: func (data: Data) {
-        match(data class) {
-            case Word =>
-                word := data as Word
+        match(data) {
+            case word: Word =>
                 if(!vocab definitions contains?(word name))
                     Exception new(This, "Encountered undefined word: '%s'." format(word name)) throw()
                 word definition = vocab definitions[word name]
-            case Wrapper =>
-                wrapper := data as Wrapper
+            case wrapper: Wrapper =>
                 resolveOne(wrapper data)
-            case Quotation =>
-                for(data_ in data as Quotation body) {
+            case quot: Quotation =>
+                for(data_ in quot body) {
                     resolveOne(data_)
                 }
         }
