@@ -14,7 +14,7 @@ main: func (args: ArrayList<String>) {
 
 //    vocab toString() println()
 
-    Interpreter new() run(vocab)
+//    Interpreter new() run(vocab)
 
     compiler := Compiler new(vocab)
     compiler compile()
