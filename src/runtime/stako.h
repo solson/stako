@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 /* StakoValues can hold either a plain integer or a pointer to a
    StakoObject. To allow this, Stako Values reserve the Least

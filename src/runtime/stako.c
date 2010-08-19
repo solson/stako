@@ -5,8 +5,12 @@ int StakoValue_isFixnum(StakoValue val) {
     return val & 1;
 }
 
-size_t StakoValue_toFixnum(StakoValue val) {
+size_t StakoValue_toInt(StakoValue val) {
     return val >> 1;
+}
+
+StakoValue StakoValue_fromInt(size_t val) {
+    return (val << 1) | 1;
 }
 
 StakoObject *StakoValue_toStakoObject(StakoValue val) {
@@ -36,11 +40,39 @@ void StakoStack_push(StakoStack *this, StakoValue element) {
 }
 
 StakoValue StakoStack_pop(StakoStack *this) {
+    if(this->size == 0)
+        puts("Tried to pop an empty Stako stack.");
     this->size--;
     return this->data[this->size];
+}
+
+StakoValue StakoStack_peek(StakoStack *this) {
+    if(this->size == 0)
+        puts("Tried to peek an empty Stako stack.");
+    return this->data[this->size - 1];
 }
 
 void StakoStack_delete(StakoStack *this) {
     free(this->data);
     free(this);
+}
+
+/* Stako builtins */
+void Stako_drop(StakoStack *stack) {
+    StakoStack_pop(stack);
+}
+
+void Stako_dup(StakoStack *stack) {
+    StakoStack_push(stack, StakoStack_peek(stack));
+}
+
+void Stako_pp(StakoStack *stack) {
+    size_t x = StakoValue_toInt(StakoStack_pop(stack));
+    printf("%zi\n", x);
+}
+
+void StakoOP_TIMES(StakoStack *stack) {
+    size_t y = StakoValue_toInt(StakoStack_pop(stack));
+    size_t x = StakoValue_toInt(StakoStack_pop(stack));
+    StakoStack_push(stack, StakoValue_fromInt(x * y));
 }

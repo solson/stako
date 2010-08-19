@@ -1,5 +1,5 @@
 import structs/ArrayList, text/StringReader, io/File
-import ast/Vocab, Parser, Interpreter, Compiler
+import ast/Vocab, Parser, Compiler
 
 main: func (args: ArrayList<String>) {
     if(args size() != 2) {
@@ -13,8 +13,6 @@ main: func (args: ArrayList<String>) {
     Parser new(vocab, fileName, File new(fileName) read()) parse()
 
 //    vocab toString() println()
-
-//    Interpreter new() run(vocab)
 
     compiler := Compiler new(vocab)
     compiler compile()

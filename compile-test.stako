@@ -1,1 +1,3 @@
-main: main.
+sq: dup *.
+
+main: 12 sq pp.

@@ -6,11 +6,11 @@ Definition: class extends Node {
     stackEffect: StackEffect
     body: Quotation
     primitive? := false
-    primitiveBody: Func (Stack<Data>)
+    externName: String
 
     init: func (=name, =stackEffect, =body) {}
 
-    init: func ~primitive (=name, =primitiveBody) {
+    init: func ~primitive (=name, =externName) {
         primitive? = true
     }
 
@@ -18,7 +18,7 @@ Definition: class extends Node {
         buf := Buffer new()
         buf append(name). append(": ")
         if(primitive?) {
-            buf append("(primitive)")
+            buf append("(primitive "). append(externName). append(')')
         } else {
             if(stackEffect inputs size() > 0 || stackEffect outputs size() > 0)
                 buf append(stackEffect toString()). append(' ')
