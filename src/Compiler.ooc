@@ -1,52 +1,89 @@
-import ast/[Node, Vocab, Definition]
+import ast/[Node, Vocab, Definition, Quotation, Word], Resolver
 use llvm
 import llvm/[Core, Target]
-import structs/ArrayList
+import structs/[ArrayList, HashMap]
 
 Compiler: class {
     vocab: Vocab
     module: Module
     target: Target
+    
     sizeType: Type
+    stackType: Type
+    wordFuncType: Type
 
     init: func (=vocab) {
         module = Module new(vocab name)
         target = Target new(module getTarget())
+        
         sizeType = target intPointerType()
+        stackType = Type pointer(Type struct_([Type pointer(sizeType), sizeType, sizeType]))
+        wordFuncType = Type function(Type void_(), [stackType])
     }
 
     compile: func {
-        compileCore()
+        Resolver new(vocab) resolve()
+        
+        addPrimitives()
+
+        fns := HashMap<String, Function> new()
+        for(defn in vocab definitions) {
+            fns[defn name] = addWordFunc(defn name)
+        }
+
+        for(defn in vocab definitions) {
+            builder := fns[defn name] builder()
+            
+            for(data in defn body body) {
+                match(data) {
+                    case word: Word =>
+                        addWordCall(builder, fns[word definition name])
+//                    case wrapper: Wrapper =>
+//                    case =>
+//                        push(data)
+                }
+            }
+
+            builder ret()
+        }
+
+        addMainFunc(fns["main"])
 
         module dump()
     }
 
-    compileCore: func {
-        module addFunction("is_fixnum", Type int1(),
-            [sizeType],
-            ["val"   ]
+    primitives := HashMap<String, Function> new()
+    
+    addPrimitives: func {
+        module addTypeName("StakoStack", stackType)
+        addPrimitive("StakoValue_isFixnum", Type int32(), [sizeType])
+        addPrimitive("StakoValue_toFixnum", sizeType, [sizeType])
+        addPrimitive("StakoValue_toStakoObject", Type pointer(Type int8()), [sizeType])
+        addPrimitive("StakoStack_new", stackType, [sizeType])
+    }
+
+    addPrimitive: func (name: String, ret: Type, args: Type[]) {
+        primitives[name] = module addFunction(name, ret, args)
+    }
+
+    addWordFunc: func (name: String) -> Function {
+        fn := module addFunction("Stako_" + name, wordFuncType)
+        fn args[0] setName("stack")
+        fn
+    }
+
+    addWordCall: func (builder: Builder, fn: Function) {
+        builder call(fn, [fn args[0]], "")
+    }
+
+    addMainFunc: func (mainFn: Function) {
+        module addFunction("main", Type void_(),
+            [Type int32(), Type pointer(Type pointer(Type int8()))],
+            ["argc", "argv"]
         ) build(|builder, args|
-            fixnumBit := builder trunc(args[0], Type int1(), "fixnum_bit")
-            builder ret(fixnumBit)
-        )
-        
-        module addFunction("value_to_int", sizeType,
-            [sizeType],
-            ["val"   ]
-        ) build(|builder, args|
-            int_ := builder lshr(args[0], LLVMConstInt(sizeType, 1, 0), "int")
-            builder ret(int_)
-        )
-        
-        module addFunction("value_to_ptr", Type pointer(Type int_(1337), 0),
-            [sizeType],
-            ["val"   ]
-        ) build(|builder, args|
-//            Value constInt(sizeType, 1)
-            mask := builder not(LLVMConstInt(sizeType, 1, 0), "mask")
-            int_ := builder and(args[0], mask, "int")
-            ptr := builder inttoptr(int_, Type pointer(Type int_(1337), 0), "ptr")
-            builder ret(ptr)
+            stack := builder call(primitives["StakoStack_new"], [LLVMConstInt(sizeType, 10, 0)], "stack")
+            builder call(mainFn, [stack], "")
+            builder ret()
         )
     }
 }
