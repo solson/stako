@@ -1,5 +1,5 @@
 import Definition
-import structs/[ArrayList, HashMap], text/Buffer
+import structs/[ArrayList, HashMap]
 
 Vocab: class {
     name: String
@@ -10,9 +10,9 @@ Vocab: class {
     toString: func -> String {
         buf := Buffer new()
         values := definitions iterator() toList()
-        for(i in 0..values size()) {
+        for(i in 0..values size) {
             buf append(values[i] toString())
-            if(i != values size() - 1)
+            if(i != values size - 1)
                 buf append('\n')
         }
         buf toString()

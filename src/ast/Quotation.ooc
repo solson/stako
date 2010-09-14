@@ -1,5 +1,5 @@
 import Node
-import text/Buffer, structs/ArrayList
+import structs/ArrayList
 
 Quotation: class extends Data {
     body := ArrayList<Data> new()
@@ -11,9 +11,9 @@ Quotation: class extends Data {
     toString: func -> String {
         buf := Buffer new()
         buf append('[')
-        for(i in 0..body size()) {
+        for(i in 0..body size) {
             buf append(body[i] toString())
-            if(i != body size() - 1)
+            if(i != body size - 1)
                 buf append(' ')
         }
         buf append(']')

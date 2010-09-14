@@ -16,7 +16,7 @@ Resolver: class {
         match(data) {
             case word: Word =>
                 if(!vocab definitions contains?(word name))
-                    Exception new(This, "Encountered undefined word: '%s'." format(word name)) throw()
+                    Exception new(This, "Encountered undefined word: '%s'." format(word name toCString())) throw()
                 word definition = vocab definitions[word name]
             case wrapper: Wrapper =>
                 resolveOne(wrapper data)

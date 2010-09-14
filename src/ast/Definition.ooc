@@ -1,5 +1,5 @@
 import Node, StackEffect, Quotation
-import text/Buffer, structs/[ArrayList, Stack]
+import structs/[ArrayList, Stack]
 
 Definition: class extends Node {
     name: String
@@ -20,12 +20,12 @@ Definition: class extends Node {
         if(primitive?) {
             buf append("(primitive "). append(externName). append(')')
         } else {
-            if(stackEffect inputs size() > 0 || stackEffect outputs size() > 0)
+            if(stackEffect inputs size > 0 || stackEffect outputs size > 0)
                 buf append(stackEffect toString()). append(' ')
             words := body body
-            for(i in 0..words size()) {
+            for(i in 0..words size) {
                 buf append(words[i] toString())
-                if(i != words size() - 1)
+                if(i != words size - 1)
                     buf append(' ')
             }
         }

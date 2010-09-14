@@ -1,7 +1,7 @@
 import ast/[Node, Vocab, Definition, Quotation, Word, NumberLiteral], Resolver
 use llvm
 import llvm/[Core, Target]
-import structs/[ArrayList, HashMap]
+import structs/[ArrayList, HashMap], os/Process, io/File
 
 Compiler: class {
     vocab: Vocab
@@ -12,10 +12,13 @@ Compiler: class {
     valueType: Type
     stackType: Type
     wordFuncType: Type
+    
+    outputFile: String
+    stakoLib: String
 
     primitives := HashMap<String, Function> new()
 
-    init: func (=vocab) {
+    init: func (=vocab, =outputFile, =stakoLib) {
         module = Module new(vocab name)
         target = Target new(module getTarget())
     }
@@ -54,7 +57,18 @@ Compiler: class {
 
         addMainFunc(fns["main"])
 
-        module dump()
+        File new("stako_tmp") mkdir()
+
+        baseFile := "stako_tmp/" + vocab name
+        bitcodeFile := baseFile + ".bc"
+        objectFile := baseFile + ".o"
+        exeFile := vocab name
+
+        module writeBitcode(bitcodeFile)
+
+        Process new(["llvmc", "-clang", "-c", bitcodeFile, "-o", objectFile]) execute()
+        Process new(["clang", stakoLib, objectFile, "-o", outputFile]) execute()
+        "[DONE]" println()
     }
     
     addPrimitives: func {
@@ -64,7 +78,6 @@ Compiler: class {
         wordFuncType = Type function(Type void_(), [stackType])
         
         module addTypeName("StakoStack", stackType)
-//        module addTypeName()
         
         addPrimitive("StakoValue_isFixnum", Type int32(), [valueType])
         addPrimitive("StakoValue_toInt", sizeType, [valueType])
@@ -73,17 +86,24 @@ Compiler: class {
         addPrimitive("StakoStack_new", stackType, [sizeType])
         addPrimitive("StakoStack_push", Type void_(), [stackType, valueType])
 
-        addPrimitiveWord("drop", "Stako_drop")
-        addPrimitiveWord("dup", "Stako_dup")
-        addPrimitiveWord("pp", "Stako_pp")
-        addPrimitiveWord("*", "StakoOP_TIMES")
+        addPrimitiveWord("drop")
+        addPrimitiveWord("dup")
+        addPrimitiveWord("pp")
+        addPrimitiveWord("fixnum*")
+        addPrimitiveWord("fixnum+")
+        addPrimitiveWord("fixnum/i")
+        addPrimitiveWord("fixnum-mod")
+        addPrimitiveWord("fixnum-")
     }
 
     addPrimitive: func (name: String, ret: Type, args: Type[]) {
         primitives[name] = module addFunction(name, ret, args)
     }
 
-    addPrimitiveWord: func (name, externName: String) {
+    addPrimitiveWord: func (name: String) {
+        externName := "StakoPrimitive_" +
+             name replaceAll("*", "__MULT__") replaceAll("+", "__PLUS__") \
+                  replaceAll("/", "__DIV__") replaceAll("-", "__MINUS__")
         vocab definitions[name] = Definition new(name, externName)
     }
 

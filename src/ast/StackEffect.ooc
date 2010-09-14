@@ -1,5 +1,5 @@
 import Node
-import structs/ArrayList, text/Buffer
+import structs/ArrayList
 
 StackEffect: class extends Node {
     inputs  := ArrayList<String> new()

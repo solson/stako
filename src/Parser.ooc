@@ -1,4 +1,4 @@
-import io/[File, FileReader, Reader], text/[Buffer, StringReader], structs/ArrayList
+import io/[File, FileReader, Reader, StringReader], structs/ArrayList
 import ast/[Node, Vocab, Definition, Word, StackEffect, Quotation, NumberLiteral, CharLiteral, StringLiteral, Wrapper]
 
 Parser: class {
@@ -230,7 +230,7 @@ Parser: class {
     }
 
     parseCharHexEscape: func -> Char {
-        num := String new(2)
+        num := Buffer new(2)
         for(i in 0..2) {
             assertHasMore("Unexpected end of file in hexadecimal escape, expected hexadecimal digit.")
             c := read()
@@ -238,11 +238,11 @@ Parser: class {
                 error("Invalid hexadecimal digit in escape: '%s'.", c)
             num[i] = c
         }
-        num toLong(16) as Char
+        num toString() toLong(16) as Char
     }
 
     parseCharOctalEscape: func -> Char {
-        num := String new(3)
+        num := Buffer new(3)
         for(i in 0..3) {
             assertHasMore("Unexpected end of file in octal escape, expected octal digit.")
             c := read()
@@ -250,7 +250,7 @@ Parser: class {
                 error("Invalid octal digit in escape: '%s'.", c)
             num[i] = c
         }
-        x := num toLong(8)
+        x := num toString() toLong(8)
         if(x > 0c377)
             error("Invalid number in octal escape: '%s'. Numbers larger than 0c377 cannot fit in a single character (byte)." format(num))
         x as Char
@@ -319,7 +319,7 @@ Parser: class {
         
         error append(msg). append('\n').
               append(errLine). append('\n').
-              append(" " * column). append('^')
+              append(" " times(column)). append('^')
         ParsingError new(fileName, line, column, error toString()) throw()
     }
 

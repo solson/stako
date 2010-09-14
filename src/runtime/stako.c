@@ -58,21 +58,45 @@ void StakoStack_delete(StakoStack *this) {
 }
 
 /* Stako builtins */
-void Stako_drop(StakoStack *stack) {
+void StakoPrimitive_drop(StakoStack *stack) {
     StakoStack_pop(stack);
 }
 
-void Stako_dup(StakoStack *stack) {
+void StakoPrimitive_dup(StakoStack *stack) {
     StakoStack_push(stack, StakoStack_peek(stack));
 }
 
-void Stako_pp(StakoStack *stack) {
+void StakoPrimitive_pp(StakoStack *stack) {
     size_t x = StakoValue_toInt(StakoStack_pop(stack));
     printf("%zi\n", x);
 }
 
-void StakoOP_TIMES(StakoStack *stack) {
+void StakoPrimitive_fixnum__MULT__(StakoStack *stack) {
     size_t y = StakoValue_toInt(StakoStack_pop(stack));
     size_t x = StakoValue_toInt(StakoStack_pop(stack));
     StakoStack_push(stack, StakoValue_fromInt(x * y));
+}
+
+void StakoPrimitive_fixnum__PLUS__(StakoStack *stack) {
+    size_t y = StakoValue_toInt(StakoStack_pop(stack));
+    size_t x = StakoValue_toInt(StakoStack_pop(stack));
+    StakoStack_push(stack, StakoValue_fromInt(x + y));
+}
+
+void StakoPrimitive_fixnum__MINUS__(StakoStack *stack) {
+    size_t y = StakoValue_toInt(StakoStack_pop(stack));
+    size_t x = StakoValue_toInt(StakoStack_pop(stack));
+    StakoStack_push(stack, StakoValue_fromInt(x - y));
+}
+
+void StakoPrimitive_fixnum__DIV__i(StakoStack *stack) {
+    size_t y = StakoValue_toInt(StakoStack_pop(stack));
+    size_t x = StakoValue_toInt(StakoStack_pop(stack));
+    StakoStack_push(stack, StakoValue_fromInt(x / y));
+}
+
+void StakoPrimitive_fixnum__MINUS__mod(StakoStack *stack) {
+    size_t y = StakoValue_toInt(StakoStack_pop(stack));
+    size_t x = StakoValue_toInt(StakoStack_pop(stack));
+    StakoStack_push(stack, StakoValue_fromInt(x % y));
 }

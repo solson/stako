@@ -1,3 +1,11 @@
+*: fixnum*.
++: fixnum+.
+/i: fixnum/i.
+mod: fixnum-mod.
+-: fixnum-.
+
 sq: dup *.
 
-main: 12 sq pp.
+main:
+  12 sq pp
+  12 30 + pp.

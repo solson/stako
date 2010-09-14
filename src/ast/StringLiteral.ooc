@@ -1,5 +1,4 @@
 import Node, CharLiteral
-import text/Buffer
 
 StringLiteral: class extends Data {
     string: String
