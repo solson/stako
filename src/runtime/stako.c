@@ -40,8 +40,6 @@ void StakoStack_push(StakoStack *this, StakoValue element) {
 }
 
 StakoValue StakoStack_pop(StakoStack *this) {
-    if(this->size == 0)
-        puts("Tried to pop an empty Stako stack.");
     this->size--;
     return this->data[this->size];
 }
