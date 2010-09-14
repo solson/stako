@@ -87,7 +87,13 @@ Compiler: class {
         addPrimitive("StakoStack_push", Type void_(), [stackType, valueType])
 
         addPrimitiveWord("drop")
+        addPrimitiveWord("2drop")
+        addPrimitiveWord("3drop")
         addPrimitiveWord("dup")
+        addPrimitiveWord("2dup")
+        addPrimitiveWord("3dup")
+        addPrimitiveWord("nip")
+        addPrimitiveWord("2nip")
         addPrimitiveWord("pp")
         addPrimitiveWord("fixnum*")
         addPrimitiveWord("fixnum+")

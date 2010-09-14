@@ -47,9 +47,11 @@ StakoValue StakoStack_pop(StakoStack *this) {
 }
 
 StakoValue StakoStack_peek(StakoStack *this) {
-    if(this->size == 0)
-        puts("Tried to peek an empty Stako stack.");
     return this->data[this->size - 1];
+}
+
+StakoValue StakoStack_peek_index(StakoStack *this, size_t index) {
+    return this->data[this->size - 1 - index];
 }
 
 void StakoStack_delete(StakoStack *this) {
@@ -62,8 +64,43 @@ void StakoPrimitive_drop(StakoStack *stack) {
     StakoStack_pop(stack);
 }
 
+void StakoPrimitive_2drop(StakoStack *stack) {
+    StakoStack_pop(stack);
+    StakoStack_pop(stack);
+}
+
+void StakoPrimitive_3drop(StakoStack *stack) {
+    StakoStack_pop(stack);
+    StakoStack_pop(stack);
+    StakoStack_pop(stack);
+}
+
 void StakoPrimitive_dup(StakoStack *stack) {
     StakoStack_push(stack, StakoStack_peek(stack));
+}
+
+void StakoPrimitive_2dup(StakoStack *stack) {
+    StakoStack_push(stack, StakoStack_peek_index(stack, 1));
+    StakoStack_push(stack, StakoStack_peek_index(stack, 1));
+}
+
+void StakoPrimitive_3dup(StakoStack *stack) {
+    StakoStack_push(stack, StakoStack_peek_index(stack, 2));
+    StakoStack_push(stack, StakoStack_peek_index(stack, 2));
+    StakoStack_push(stack, StakoStack_peek_index(stack, 2));
+}
+
+void StakoPrimitive_nip(StakoStack *stack) {
+    StakoValue tmp = StakoStack_pop(stack);
+    StakoStack_pop(stack);
+    StakoStack_push(stack, tmp);
+}
+
+void StakoPrimitive_2nip(StakoStack *stack) {
+    StakoValue tmp = StakoStack_pop(stack);
+    StakoStack_pop(stack);
+    StakoStack_pop(stack);
+    StakoStack_push(stack, tmp);
 }
 
 void StakoPrimitive_pp(StakoStack *stack) {
