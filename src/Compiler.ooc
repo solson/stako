@@ -77,7 +77,7 @@ Compiler: class {
         arrayType = Type pointer(Type struct_([Type pointer(sizeType), sizeType, sizeType]))
         wordFuncType = Type function(Type void_(), [arrayType])
         
-        module addTypeName("StakoStack", arrayType)
+        module addTypeName("StakoArray", arrayType)
         
         addPrimitive("StakoValue_isFixnum", Type int32(), [valueType])
         addPrimitive("StakoValue_toInt", sizeType, [valueType])
