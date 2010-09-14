@@ -86,27 +86,12 @@ Compiler: class {
         addPrimitive("StakoStack_new", stackType, [sizeType])
         addPrimitive("StakoStack_push", Type void_(), [stackType, valueType])
 
-        addPrimitiveWord("drop")
-        addPrimitiveWord("2drop")
-        addPrimitiveWord("3drop")
-        addPrimitiveWord("dup")
-        addPrimitiveWord("2dup")
-        addPrimitiveWord("3dup")
-        addPrimitiveWord("dupd")
-        addPrimitiveWord("nip")
-        addPrimitiveWord("2nip")
-        addPrimitiveWord("over")
-        addPrimitiveWord("pick")
-        addPrimitiveWord("rot")
-        addPrimitiveWord("-rot")
-        addPrimitiveWord("swap")
-        addPrimitiveWord("swapd")
-        addPrimitiveWord("pp")
-        addPrimitiveWord("fixnum*")
-        addPrimitiveWord("fixnum+")
-        addPrimitiveWord("fixnum/i")
-        addPrimitiveWord("fixnum-mod")
-        addPrimitiveWord("fixnum-")
+        ["drop", "2drop", "3drop", "dup", "2dup", "3dup", "dupd", "nip",
+         "2nip", "over", "pick", "rot", "-rot", "swap", "swapd", "pp",
+         "fixnum*", "fixnum+", "fixnum-", "fixnum/i", "fixnum-mod", "fixnum-"
+        ] as ArrayList<String> each(|name|
+             addPrimitiveWord(name)
+        )
     }
 
     addPrimitive: func (name: String, ret: Type, args: Type[]) {
