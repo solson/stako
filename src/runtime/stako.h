@@ -19,34 +19,37 @@ typedef struct {
     StakoValue *data;
     size_t capacity;
     size_t size;
-} StakoStack;
+} StakoArray;
 
-typedef void (*StakoWordFunc)(StakoStack *stack);
+typedef void (*StakoWordFunc)(StakoArray *stack);
 
 typedef enum {
-    STAKO_WORD
+    STAKO_WORD,
+    STAKO_STRING,
+    STAKO_ARRAY
 } StakoType;
 
 typedef struct {
-    char *name;
-    StakoWordFunc body;
-} StakoWord;
+    StakoType type;
+    void *data;
+} StakoObject;
 
 typedef struct {
-    StakoType type;
-    union {
-        StakoWord word;
-    } data;
-} StakoObject;
+    char *name;
+    StakoWordFunc primitiveFunc;
+    StakoArray *body;
+} StakoWord;
+
+typedef char *StakoString;
 
 int StakoValue_isFixnum(StakoValue val);
 size_t StakoValue_toFixnum(StakoValue val);
 StakoObject *StakoValue_toStakoObject(StakoValue val);
 
-StakoStack *StakoStack_new(size_t capacity);
-void StakoStack_ensureCapacity(StakoStack *this, size_t newSize);
-void StakoStack_push(StakoStack *this, StakoValue element);
-StakoValue StakoStack_pop(StakoStack *this);
-void StakoStack_delete(StakoStack *this);
+StakoArray *StakoArray_new(size_t capacity);
+void StakoArray_ensureCapacity(StakoArray *this, size_t newSize);
+void StakoArray_push(StakoArray *this, StakoValue element);
+StakoValue StakoArray_pop(StakoArray *this);
+void StakoArray_delete(StakoArray *this);
 
 #endif // STAKO_H

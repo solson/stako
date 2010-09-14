@@ -10,7 +10,7 @@ Compiler: class {
     
     sizeType: Type
     valueType: Type
-    stackType: Type
+    arrayType: Type // Also used for stacks and quotations.
     wordFuncType: Type
     
     outputFile: String
@@ -74,17 +74,17 @@ Compiler: class {
     addPrimitives: func {
         sizeType = target intPointerType()
         valueType = sizeType
-        stackType = Type pointer(Type struct_([Type pointer(sizeType), sizeType, sizeType]))
-        wordFuncType = Type function(Type void_(), [stackType])
+        arrayType = Type pointer(Type struct_([Type pointer(sizeType), sizeType, sizeType]))
+        wordFuncType = Type function(Type void_(), [arrayType])
         
-        module addTypeName("StakoStack", stackType)
+        module addTypeName("StakoStack", arrayType)
         
         addPrimitive("StakoValue_isFixnum", Type int32(), [valueType])
         addPrimitive("StakoValue_toInt", sizeType, [valueType])
         addPrimitive("StakoValue_fromInt", valueType, [sizeType])
         addPrimitive("StakoValue_toStakoObject", Type pointer(Type int8()), [sizeType])
-        addPrimitive("StakoStack_new", stackType, [sizeType])
-        addPrimitive("StakoStack_push", Type void_(), [stackType, valueType])
+        addPrimitive("StakoArray_new", arrayType, [sizeType])
+        addPrimitive("StakoArray_push", Type void_(), [arrayType, valueType])
 
         ["drop", "2drop", "3drop", "dup", "2dup", "3dup", "dupd", "nip",
          "2nip", "over", "pick", "rot", "-rot", "swap", "swapd", "pp",
@@ -120,7 +120,7 @@ Compiler: class {
     }
 
     push: func (builder: Builder, stack: Value, num: LLong) {
-        builder call(primitives["StakoStack_push"], [stack, LLVMConstInt(valueType, num, 0)], "")
+        builder call(primitives["StakoArray_push"], [stack, LLVMConstInt(valueType, num, 0)], "")
     }
 
     addMainFunc: func (mainFn: Function) {
@@ -128,7 +128,7 @@ Compiler: class {
             [Type int32(), Type pointer(Type pointer(Type int8()))],
             ["argc", "argv"]
         ) build(|builder, args|
-            stack := builder call(primitives["StakoStack_new"], [LLVMConstInt(sizeType, 10, 0)], "stack")
+            stack := builder call(primitives["StakoArray_new"], [LLVMConstInt(sizeType, 10, 0)], "stack")
             builder call(mainFn, [stack], "")
             builder ret()
         )
