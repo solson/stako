@@ -129,10 +129,12 @@ Compiler: class {
                         converted := builder call(primitives["StakoValue_toInt"], [popped], "")
                         callArgs add(builder truncOrBitcast(converted, arg type(), ""))
                     }
-                    callArgs reverse!()
+                    if(callArgs size > 0) callArgs reverse!() // workaround, reverse! is broken on empty lists
                     ret := builder call(cfunc, callArgs toArray() as Value*, callArgs size as UInt, "")
-                    convertedRet := builder call(primitives["StakoValue_fromInt"], [builder zextOrBitcast(ret, sizeType, "")], "")
-                    builder call(primitives["StakoArray_push"], [args[0], convertedRet], "")
+                    if(ret type() != Type void_()) {
+                        convertedRet := builder call(primitives["StakoValue_fromInt"], [builder zextOrBitcast(ret, sizeType, "")], "")
+                        builder call(primitives["StakoArray_push"], [args[0], convertedRet], "")
+                    }
                     builder ret()
                 )
             case "word" =>
