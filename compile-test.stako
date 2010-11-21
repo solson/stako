@@ -44,7 +44,11 @@ mod: fixnum-mod.
 sq: (x -- y) dup *.
 
 puts: <cfunc> (char* -- int).
+println: (str --) puts drop.
 strlen: <cfunc> (char* -- size_t).
+strfry: <cfunc> (char* -- char*).
+strcat: <cfunc> (char* char* -- char*).
+strcpy: <cfunc> (int char* -- char*).
 
 putchar: <cfunc> (int -- int).
 put1: putchar drop.
@@ -60,5 +64,6 @@ main:
   12 30 + pp
   0 time srand # abusing the time func
   rand pp rand pp
-  "hi" puts drop
-  "hello world" strlen pp.
+  "hi" println
+  "hello world" strlen pp
+  20 gc-malloc "hello " strcpy "ldunn" strcat strfry println.
