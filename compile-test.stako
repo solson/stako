@@ -43,7 +43,12 @@ mod: fixnum-mod.
 
 sq: (x -- y) dup *.
 
+putchar: <cfunc> (int -- int).
+put1: putchar drop.
+nl: 10 put1.
+
 main:
+  104 put1 105 put1 nl
   12 sq pp
   12 30 + pp
   20 gc-malloc pp.

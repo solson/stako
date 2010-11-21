@@ -1,7 +1,7 @@
 import ast/[Node, Vocab, Definition, WordType, StackEffect, Quotation, Word, NumberLiteral, StringLiteral], Resolver
 use llvm
 import llvm/[Core, Target]
-import structs/[ArrayList, HashMap], os/Process, io/File
+import structs/[List, ArrayList, HashMap], os/Process, io/File
 
 Compiler: class {
     vocab: Vocab
@@ -90,6 +90,7 @@ Compiler: class {
         addPrimitive("StakoString_new", Type pointer(Type struct_([sizeType, Type pointer(Type int8())])), [Type pointer(Type int8()), sizeType])
         addPrimitive("StakoArray_new", arrayType, [sizeType])
         addPrimitive("StakoArray_push", Type void_(), [arrayType, valueType])
+        addPrimitive("StakoArray_pop", valueType, [arrayType])
     }
 
     addPrimitive: func (name: String, ret: Type, args: Type[]) {
@@ -103,14 +104,63 @@ Compiler: class {
     }
 
     addWordFunc: func (defn: Definition) -> Function {
-        if(defn type words[0] == "primitive") {
-            fn := module addFunction("StakoPrimitive_" + primitivizeName(defn name), wordFuncType)
-            fn
-        } else {
-            fn := module addFunction("Stako_" + defn name, wordFuncType)
-            fn args[0] setName("stack")
-            fn
+        fn: Function
+        match(defn type words[0]) {
+            case "primitive" => 
+                fn = module addFunction("StakoPrimitive_" + primitivizeName(defn name), wordFuncType)
+            case "cfunc" =>
+                output: Type
+                match(defn stackEffect outputs size) {
+                    case 0 => output = Type void_()
+                    case 1 => output = translateCType(defn stackEffect outputs[0])
+                    case => Exception new("cfuncs should have zero or one output!") throw()
+                }
+                inputs := ArrayList<Type> new()
+                for(input in defn stackEffect inputs) {
+                    inputs add(translateCType(input))
+                }
+                fnType := Type function(output, inputs toArray() as Type*, inputs size as UInt, false as Int)
+                cfunc := module addFunction(defn name, fnType)
+                fn = module addFunction("Stako_" + defn name, wordFuncType)
+                fn build(|builder, args|
+                    callArgs := ArrayList<Value> new()
+                    for(arg in cfunc args backward()) {
+                        popped := builder call(primitives["StakoArray_pop"], [args[0]], "")
+                        converted := builder call(primitives["StakoValue_toInt"], [popped], "")
+                        callArgs add(builder truncOrBitcast(converted, arg type(), ""))
+                    }
+                    callArgs reverse!()
+                    ret := builder call(cfunc, callArgs toArray() as Value*, callArgs size as UInt, "")
+                    convertedRet := builder call(primitives["StakoValue_fromInt"], [builder zextOrBitcast(ret, sizeType, "")], "")
+                    builder call(primitives["StakoArray_push"], [args[0], convertedRet], "")
+                    builder ret()
+                )
+            case "word" =>
+                fn = module addFunction("Stako_" + defn name, wordFuncType)
         }
+        fn args[0] setName("stack")
+        fn
+    }
+
+    translateCType: func (ctype: String) -> Type {
+        pointerDepth := 0
+        for(c in ctype backward()) {
+            if(c == '*')
+                pointerDepth += 1
+            else
+                break
+        }
+        baseType := ctype[0..-pointerDepth-1]
+        llvmType := match baseType {
+            case "char" => Type int8()
+            case "short" => Type int16()
+            case "int" => Type int32()
+            case "long" => Type int64()
+            case "size_t" => sizeType
+            case "void" => Type void_()
+        }
+        pointerDepth times(|| llvmType = Type pointer(llvmType))
+        llvmType
     }
 
     addWordCall: func (builder: Builder, stack: Value, fn: Function) {
