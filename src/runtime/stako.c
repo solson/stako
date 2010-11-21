@@ -216,12 +216,6 @@ void StakoPrimitive_pp(StakoArray *stack) {
     printf("%zi\n", x);
 }
 
-// ( str -- )
-void StakoPrimitive_print(StakoArray *stack) {
-    int x = StakoArray_pop(stack);
-    printf("%i\n", x);
-}
-
 // ( x y -- x*y )
 void StakoPrimitive_fixnum__MULT__(StakoArray *stack) {
     size_t y = StakoValue_toInt(StakoArray_pop(stack));

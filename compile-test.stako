@@ -21,6 +21,7 @@ fixnum-mod: <primitive> (x y -- x%y).
 
 pp: <primitive> (x --).
 gc-malloc: <primitive> (n -- alien).
+gc-realloc: <primitive> (alien n -- alien).
 
 #stdout: <symbol>.
 #show: <generic> (a --).

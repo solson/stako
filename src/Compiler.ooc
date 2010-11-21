@@ -90,15 +90,6 @@ Compiler: class {
         addPrimitive("StakoString_new", Type pointer(Type struct_([sizeType, Type pointer(Type int8())])), [Type pointer(Type int8()), sizeType])
         addPrimitive("StakoArray_new", arrayType, [sizeType])
         addPrimitive("StakoArray_push", Type void_(), [arrayType, valueType])
-
-/*        ["drop", "2drop", "3drop", "dup", "2dup", "3dup", "dupd", "nip",
-         "2nip", "over", "pick", "rot", "-rot", "swap", "swapd", "pp",
-         "fixnum*", "fixnum+", "fixnum-", "fixnum/i", "fixnum-mod", "fixnum-",
-         "gc-malloc", "gc-realloc", "print-type"
-        ] as ArrayList<String> each(|name|
-             addPrimitiveWord(name)
-        )
-*/
     }
 
     addPrimitive: func (name: String, ret: Type, args: Type[]) {
@@ -135,13 +126,13 @@ Compiler: class {
     }
 
     addMainFunc: func (mainFn: Function) {
-        module addFunction("main", Type void_(),
+        module addFunction("main", Type int32(),
             [Type int32(), Type pointer(Type pointer(Type int8()))],
             ["argc", "argv"]
         ) build(|builder, args|
             stack := builder call(primitives["StakoArray_new"], [Value constInt(sizeType, 100, false)], "stack")
             builder call(mainFn, [stack], "")
-            builder ret()
+            builder ret(Value constInt(Type int32(), 0, false))
         )
     }
 }
