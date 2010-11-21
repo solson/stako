@@ -43,6 +43,8 @@ mod: fixnum-mod.
 
 sq: (x -- y) dup *.
 
+puts: <cfunc> (char* -- int).
+
 putchar: <cfunc> (int -- int).
 put1: putchar drop.
 nl: 10 put1.
@@ -56,4 +58,5 @@ main:
   12 sq pp
   12 30 + pp
   0 time srand # abusing the time func
-  rand pp rand pp.
+  rand pp rand pp
+  "hi" puts drop.

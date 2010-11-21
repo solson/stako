@@ -29,6 +29,10 @@ StakoObject *StakoObject_new(StakoType type, void *data) {
     return obj;
 }
 
+void *StakoObject_getData(StakoObject *obj) {
+    return obj->data;
+}
+
 StakoType StakoObject_getType(StakoObject *obj) {
     return obj->type;
 }

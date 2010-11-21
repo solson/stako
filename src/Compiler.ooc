@@ -46,9 +46,10 @@ Compiler: class {
                     case num: NumberLiteral =>
                         push(builder, stack, (num number << 1) | 1)
                     case str: StringLiteral =>
-                        s := builder call(primitives["StakoString_new"], [Value constString(str string), Value constInt(sizeType, str string size, false)], "s")
+                        s := builder call(primitives["StakoString_new"], [builder globalStringPtr(str string, ""), Value constInt(sizeType, str string size, false)], "str")
                         obj := builder call(primitives["StakoObject_new"], [Value constInt(Type int32(), 1, false), s], "obj")
-                        push(builder, stack, obj)
+                        val := builder call(primitives["StakoValue_fromStakoObject"], [obj], "val")
+                        push(builder, stack, val)
 //                case wrapper: Wrapper =>
 //                case =>
 //                    push(data)
@@ -86,8 +87,11 @@ Compiler: class {
         addPrimitive("StakoValue_toInt", sizeType, [valueType])
         addPrimitive("StakoValue_fromInt", valueType, [sizeType])
         addPrimitive("StakoValue_toStakoObject", Type pointer(Type int8()), [sizeType])
-        addPrimitive("StakoObject_new", Type pointer(Type opaque()), [Type int32(), Type pointer(Type opaque())])
-        addPrimitive("StakoString_new", Type pointer(Type struct_([sizeType, Type pointer(Type int8())])), [Type pointer(Type int8()), sizeType])
+        addPrimitive("StakoValue_fromStakoObject", sizeType, [Type pointer(Type int8())])
+        addPrimitive("StakoObject_new", Type pointer(Type int8()), [Type int32(), Type pointer(Type int8())])
+        addPrimitive("StakoObject_getData", Type pointer(Type int8()), [Type pointer(Type int8())])
+        addPrimitive("StakoString_new", Type pointer(Type int8()), [Type pointer(Type int8()), sizeType])
+        addPrimitive("StakoString_toCString", Type pointer(Type int8()), [Type pointer(Type int8())])
         addPrimitive("StakoArray_new", arrayType, [sizeType])
         addPrimitive("StakoArray_push", Type void_(), [arrayType, valueType])
         addPrimitive("StakoArray_pop", valueType, [arrayType])
@@ -126,8 +130,15 @@ Compiler: class {
                     callArgs := ArrayList<Value> new()
                     for(arg in cfunc args backward()) {
                         popped := builder call(primitives["StakoArray_pop"], [args[0]], "")
-                        converted := builder call(primitives["StakoValue_toInt"], [popped], "")
-                        callArgs add(builder truncOrBitcast(converted, arg type(), ""))
+                        if(arg type() == Type pointer(Type int8())) {
+                            obj := builder call(primitives["StakoValue_toStakoObject"], [popped], "")
+                            str := builder call(primitives["StakoObject_getData"], [obj], "")
+                            cstr := builder call(primitives["StakoString_toCString"], [str], "")
+                            callArgs add(cstr)
+                        } else {
+                            converted := builder call(primitives["StakoValue_toInt"], [popped], "")
+                            callArgs add(builder truncOrBitcast(converted, arg type(), ""))
+                        }
                     }
                     if(callArgs size > 0) callArgs reverse!() // workaround, reverse! is broken on empty lists
                     ret := builder call(cfunc, callArgs toArray() as Value*, callArgs size as UInt, "")
