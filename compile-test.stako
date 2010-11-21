@@ -55,5 +55,5 @@ main:
   104 put1 105 put1 nl
   12 sq pp
   12 30 + pp
-  1 1 - time srand # abusing the time func
+  0 time srand # abusing the time func
   rand pp rand pp.

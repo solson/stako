@@ -177,11 +177,10 @@ Parser: class {
             assertHasMore("Unexpected end of file in number or word literal.")
             c1 := read()
             if(!c1 digit?()) {
-                return match(c1) {
-                    case 'x' => parseNumberWithBase(16, |c| c hexDigit?())
-                    case 'c' => parseNumberWithBase(8,  |c| c octalDigit?())
-                    case 'b' => parseNumberWithBase(2,  |c| "01" contains?(c))
-                    case => null
+                match(c1) {
+                    case 'x' => return parseNumberWithBase(16, |c| c hexDigit?())
+                    case 'c' => return parseNumberWithBase(8,  |c| c octalDigit?())
+                    case 'b' => return parseNumberWithBase(2,  |c| "01" contains?(c))
                 }
             }
         }
