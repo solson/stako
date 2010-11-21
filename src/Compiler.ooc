@@ -91,6 +91,7 @@ Compiler: class {
         addPrimitive("StakoObject_new", Type pointer(Type int8()), [Type int32(), Type pointer(Type int8())])
         addPrimitive("StakoObject_getData", Type pointer(Type int8()), [Type pointer(Type int8())])
         addPrimitive("StakoString_new", Type pointer(Type int8()), [Type pointer(Type int8()), sizeType])
+        addPrimitive("StakoString_newWithoutLength", Type pointer(Type int8()), [Type pointer(Type int8())])
         addPrimitive("StakoString_toCString", Type pointer(Type int8()), [Type pointer(Type int8())])
         addPrimitive("StakoArray_new", arrayType, [sizeType])
         addPrimitive("StakoArray_push", Type void_(), [arrayType, valueType])
@@ -142,7 +143,12 @@ Compiler: class {
                     }
                     if(callArgs size > 0) callArgs reverse!() // workaround, reverse! is broken on empty lists
                     ret := builder call(cfunc, callArgs toArray() as Value*, callArgs size as UInt, "")
-                    if(ret type() != Type void_()) {
+                    if(ret type() == Type pointer(Type int8())) {
+                        s := builder call(primitives["StakoString_newWithoutLength"], [ret], "str")
+                        obj := builder call(primitives["StakoObject_new"], [Value constInt(Type int32(), 1, false), s], "obj")
+                        val := builder call(primitives["StakoValue_fromStakoObject"], [obj], "val")
+                        builder call(primitives["StakoArray_push"], [args[0], val], "")
+                    } else if(ret type() != Type void_()) {
                         convertedRet := builder call(primitives["StakoValue_fromInt"], [builder zextOrBitcast(ret, sizeType, "")], "")
                         builder call(primitives["StakoArray_push"], [args[0], convertedRet], "")
                     }

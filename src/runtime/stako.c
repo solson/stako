@@ -45,6 +45,13 @@ StakoString *StakoString_new(char *text, size_t length) {
     return str;
 }
 
+StakoString *StakoString_newWithoutLength(char *text) {
+    StakoString *str = GC_MALLOC(sizeof(StakoString));
+    str->length = strlen(text);
+    str->text = text;
+    return str;
+}
+
 char *StakoString_toCString(StakoString *str) {
     return str->text;
 }
