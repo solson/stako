@@ -71,7 +71,7 @@ Compiler: class {
 
         Process new(["llvmc", "-clang", "-c", bitcodeFile, "-o", objectFile]) execute()
         Process new(["clang", stakoLib, objectFile, "-lpthread", "src/runtime/linux64/libgc.a", "-o", outputFile]) execute()
-        "[DONE]" println()
+        "\33[1;32m[DONE]\33[m" println()
     }
     
     addPrimitives: func {
