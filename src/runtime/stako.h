@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+#include "gc/gc.h"
 
 /* StakoValues can hold either a plain integer or a pointer to a
    StakoObject. To allow this, Stako Values reserve the Least
@@ -40,7 +42,10 @@ typedef struct {
     StakoArray *body;
 } StakoWord;
 
-typedef char *StakoString;
+typedef struct {
+    size_t length;
+    char *text;
+} StakoString;
 
 int StakoValue_isFixnum(StakoValue val);
 size_t StakoValue_toFixnum(StakoValue val);

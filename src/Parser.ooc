@@ -1,5 +1,5 @@
 import io/[File, FileReader, Reader, StringReader], structs/ArrayList
-import ast/[Node, Vocab, Definition, Word, StackEffect, Quotation, NumberLiteral, CharLiteral, StringLiteral, Wrapper]
+import ast/[Node, Vocab, Definition, Word, WordType, StackEffect, Quotation, NumberLiteral, CharLiteral, StringLiteral, Wrapper]
 
 Parser: class {
     vocab: Vocab
@@ -40,13 +40,55 @@ Parser: class {
         assertChar(':')
         skipWhitespace()
         
+        assertHasMore("Unexpected end of file, expected type, stack effect or word body.")
+        type := parseType()
+        skipWhitespace()
+
         assertHasMore("Unexpected end of file, expected stack effect or word body.")
         stackEffect := parseStackEffect()
         skipWhitespace()
 
         body := Quotation new(parseUntil('.'))
 
-        Definition new(word, stackEffect, body)
+        Definition new(word, type, stackEffect, body)
+    }
+
+    parseType: func -> WordType {
+        type := WordType new()
+
+        // The word type, if omitted in the source code, is
+        // assumed to be <word>, a normal function word.
+        if(reader peek() != '<') {
+            type words add("word")
+            return type
+        }
+        read()
+
+        while(true) {
+            skipWhitespace()
+            assertHasMore("Word type met end of file, expected '>'.")
+            
+            c := reader peek()
+            if(c == '>') {
+                read()
+                break
+            } else if(wordChar?(c)) {
+                word := Buffer new()
+                while(reader hasNext?()) {
+                    c := read()
+                    if(wordChar?(c) && c != '>') {
+                        word append(c)
+                    } else {
+                        rewind(1)
+                        break
+                    }
+                }
+                type words add(word toString())
+            } else {
+                error("Unexpected character: '%s', expected a word or '>'.", c)
+            }
+        }
+        type
     }
 
     parseStackEffect: func -> StackEffect {

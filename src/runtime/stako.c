@@ -17,19 +17,57 @@ StakoObject *StakoValue_toStakoObject(StakoValue val) {
     return (StakoObject*)val;
 }
 
+StakoValue StakoValue_fromStakoObject(StakoObject *obj) {
+    return (StakoValue)obj;
+}
+
+/* Operations on StakoObjects */
+StakoObject *StakoObject_new(StakoType type, void *data) {
+    StakoObject *obj = GC_MALLOC(sizeof(StakoObject));
+    obj->type = type;
+    obj->data = data;
+    return obj;
+}
+
+StakoType StakoObject_getType(StakoObject *obj) {
+    return obj->type;
+}
+
+/* Operations on StakoStrings */
+StakoString *StakoString_new(char *text, size_t length) {
+    StakoString *str = GC_MALLOC(sizeof(StakoString));
+    str->length = length;
+    str->text = text;
+    return str;
+}
+
+char *StakoString_toCString(StakoString *str) {
+    return str->text;
+}
+
+char *StakoString_copyToCString(StakoString *str) {
+    char *text = GC_MALLOC(str->length + 1);
+    memcpy(text, str->text, str->length + 1);
+    return text;
+}
+
 /* Operations on StakoArrays */
 StakoArray *StakoArray_new(size_t capacity) {
-    StakoArray *this = malloc(sizeof(StakoArray));
-    this->data = malloc(sizeof(StakoValue) * capacity);
+    StakoArray *this = GC_MALLOC(sizeof(StakoArray));
+    this->data = GC_MALLOC(sizeof(StakoValue) * capacity);
     this->capacity = capacity;
     this->size = 0;
     return this;
 }
 
+StakoObject *StakoArray_toStakoObject(StakoArray *this) {
+    return StakoObject_new(STAKO_ARRAY, this);
+}
+
 void StakoArray_ensureCapacity(StakoArray *this, size_t newSize) {
     if(newSize > this->capacity) {
         this->capacity = newSize * 2;
-        this->data = realloc(this->data, this->capacity * sizeof(StakoValue));
+        this->data = GC_REALLOC(this->data, this->capacity * sizeof(StakoValue));
     }
 }
 
@@ -52,12 +90,20 @@ StakoValue StakoArray_peek_index(StakoArray *this, size_t index) {
     return this->data[this->size - 1 - index];
 }
 
-void StakoArray_delete(StakoArray *this) {
-    free(this->data);
-    free(this);
+/* Stako builtins */
+// ( size -- address )
+void StakoPrimitive_gc__MINUS__malloc(StakoArray *stack) {
+    size_t size = StakoValue_toInt(StakoArray_pop(stack));
+    StakoArray_push(stack, StakoValue_fromInt((size_t)GC_MALLOC(size)));
 }
 
-/* Stako builtins */
+// ( address size -- address )
+void StakoPrimitive_gc__MINUS__realloc(StakoArray *stack) {
+    size_t size = StakoValue_toInt(StakoArray_pop(stack));
+    size_t address = StakoValue_toInt(StakoArray_pop(stack));
+    StakoArray_push(stack, StakoValue_fromInt((size_t)GC_REALLOC((void*)address, size)));
+}
+
 // ( x -- )
 void StakoPrimitive_drop(StakoArray *stack) {
     StakoArray_pop(stack);
@@ -168,6 +214,12 @@ void StakoPrimitive_swapd(StakoArray *stack) {
 void StakoPrimitive_pp(StakoArray *stack) {
     size_t x = StakoValue_toInt(StakoArray_pop(stack));
     printf("%zi\n", x);
+}
+
+// ( str -- )
+void StakoPrimitive_print(StakoArray *stack) {
+    int x = StakoArray_pop(stack);
+    printf("%i\n", x);
 }
 
 // ( x y -- x*y )

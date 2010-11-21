@@ -1,14 +1,15 @@
-import Node, StackEffect, Quotation
+import Node, WordType, StackEffect, Quotation
 import structs/[ArrayList, Stack]
 
 Definition: class extends Node {
     name: String
+    type: WordType
     stackEffect: StackEffect
     body: Quotation
     primitive? := false
     externName: String
 
-    init: func (=name, =stackEffect, =body) {}
+    init: func (=name, =type, =stackEffect, =body) {}
 
     init: func ~primitive (=name, =externName) {
         primitive? = true
@@ -17,6 +18,8 @@ Definition: class extends Node {
     toString: func -> String {
         buf := Buffer new()
         buf append(name). append(": ")
+        if(type words[0] != "word")
+            buf append(type toString()) .append(" ")
         if(primitive?) {
             buf append("(primitive "). append(externName). append(')')
         } else {

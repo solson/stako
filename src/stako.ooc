@@ -21,6 +21,8 @@ main: func (args: ArrayList<String>) {
 
     Parser new(vocab, fileName, File new(fileName) read()) parse()
 
+    vocab toString() println()
+
     compiler := Compiler new(vocab, outputFile, coreLib)
     compiler compile()
 }
