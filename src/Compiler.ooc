@@ -149,12 +149,13 @@ Compiler: class {
         
         fn = module addFunction("Stako_" + defn name, wordFuncType)
         fn build(|builder, args|
+	        stack := args[0]
 	        // --- Aquire arguments from datastack ---
 	        callArgs := ArrayList<Value> new()
 	        i := 0
 	        for(arg in cfunc args backward()) {
 		        signed? := signs[i]
-	            popped := builder call(primitives["StakoArray_pop"], [args[0]])
+	            popped := builder call(primitives["StakoArray_pop"], [stack])
 	            if(arg type() == Type pointer(Type int8())) {
 	                obj := builder call(primitives["StakoValue_toStakoObject"], [popped])
 	                // TODO: Check if it's actually a StakoString.
@@ -174,14 +175,14 @@ Compiler: class {
 	        
 	        // -- Deal with the return value ---
 	        if(ret type() == Type pointer(Type int8())) {
-	            s := builder call(primitives["StakoString_newWithoutLength"], [ret], "str")
-	            obj := builder call(primitives["StakoObject_new"], [Value constInt(Type int32(), 1, false), s], "obj")
-	            val := builder call(primitives["StakoValue_fromStakoObject"], [obj], "val")
-	            builder call(primitives["StakoArray_push"], [args[0], val])
+	            str := builder call(primitives["StakoString_newWithoutLength"], [ret])
+	            obj := builder call(primitives["StakoObject_new"], [Value constInt(Type int32(), 1, false), str])
+	            val := builder call(primitives["StakoValue_fromStakoObject"], [obj])
+	            builder call(primitives["StakoArray_push"], [stack, val])
 	        } else if(ret type() != Type void_()) {
 		        castedInt := castCInt(builder, ret, sizeType, outputSigned?)
 	            convertedRet := builder call(primitives["StakoValue_fromInt"], [castedInt])
-	            builder call(primitives["StakoArray_push"], [args[0], convertedRet])
+	            builder call(primitives["StakoArray_push"], [stack, convertedRet])
 	        }
 	        builder ret()
         )
