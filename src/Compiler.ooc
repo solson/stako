@@ -46,9 +46,9 @@ Compiler: class {
                     case num: NumberLiteral =>
                         push(builder, stack, (num number << 1) | 1)
                     case str: StringLiteral =>
-                        s := builder call(primitives["StakoString_new"], [builder globalStringPtr(str string, ""), Value constInt(sizeType, str string size, false)], "str")
-                        obj := builder call(primitives["StakoObject_new"], [Value constInt(Type int32(), 1, false), s], "obj")
-                        val := builder call(primitives["StakoValue_fromStakoObject"], [obj], "val")
+	                    s := callPrimitive(builder, "StakoString_new", [builder globalStringPtr(str string, ""), Value constInt(sizeType, str string size, false)])
+                        obj := callPrimitive(builder, "StakoObject_new", [Value constInt(Type int32(), 1, false), s])
+                        val := callPrimitive(builder, "StakoValue_fromStakoObject", [obj])
                         push(builder, stack, val)
 //                case wrapper: Wrapper =>
 //                case =>
@@ -108,6 +108,10 @@ Compiler: class {
              replaceAll("?", "__QUEST__") replaceAll("!", "__BANG__")
     }
 
+    callPrimitive: func (builder: Builder, name: String, args: Value[]) -> Value {
+	    builder call(primitives[name], args)
+    }
+
     addWordFunc: func (defn: Definition) -> Function {
         fn: Function
         match(defn type words[0]) {
@@ -155,15 +159,15 @@ Compiler: class {
 	        i := 0
 	        for(arg in cfunc args backward()) {
 		        signed? := signs[i]
-	            popped := builder call(primitives["StakoArray_pop"], [stack])
+		        popped := callPrimitive(builder, "StakoArray_pop", [stack])
 	            if(arg type() == Type pointer(Type int8())) {
-	                obj := builder call(primitives["StakoValue_toStakoObject"], [popped])
+		            obj := callPrimitive(builder, "StakoValue_toStakoObject", [popped])
 	                // TODO: Check if it's actually a StakoString.
-	                str := builder call(primitives["StakoObject_getData"], [obj])
-	                cstr := builder call(primitives["StakoString_toCString"], [str])
+		            str := callPrimitive(builder, "StakoObject_getData", [obj])
+		            cstr := callPrimitive(builder, "StakoString_toCString", [str])
 	                callArgs add(cstr)
 	            } else {
-	                converted := builder call(primitives["StakoValue_toInt"], [popped])
+		            converted := callPrimitive(builder, "StakoValue_toInt", [popped])
 	                callArgs add(castCInt(builder, converted, arg type(), signed?))
 	            }
 	            i += 1
@@ -175,14 +179,14 @@ Compiler: class {
 	        
 	        // -- Deal with the return value ---
 	        if(ret type() == Type pointer(Type int8())) {
-	            str := builder call(primitives["StakoString_newWithoutLength"], [ret])
-	            obj := builder call(primitives["StakoObject_new"], [Value constInt(Type int32(), 1, false), str])
-	            val := builder call(primitives["StakoValue_fromStakoObject"], [obj])
-	            builder call(primitives["StakoArray_push"], [stack, val])
+	            str := callPrimitive(builder, "StakoString_newWithoutLength", [ret])
+	            obj := callPrimitive(builder, "StakoObject_new", [Value constInt(Type int32(), 1, false), str])
+	            val := callPrimitive(builder, "StakoValue_fromStakoObject", [obj])
+	            callPrimitive(builder, "StakoArray_push", [stack, val])
 	        } else if(ret type() != Type void_()) {
 		        castedInt := castCInt(builder, ret, sizeType, outputSigned?)
-	            convertedRet := builder call(primitives["StakoValue_fromInt"], [castedInt])
-	            builder call(primitives["StakoArray_push"], [stack, convertedRet])
+	            convertedRet := callPrimitive(builder, "StakoValue_fromInt", [castedInt])
+	            callPrimitive(builder, "StakoArray_push", [stack, convertedRet])
 	        }
 	        builder ret()
         )
@@ -238,15 +242,15 @@ Compiler: class {
     }
 
     addWordCall: func (builder: Builder, stack: Value, fn: Function) {
-        builder call(fn, [stack], "")
+        builder call(fn, [stack])
     }
 
     push: func (builder: Builder, stack: Value, num: LLong) {
-        builder call(primitives["StakoArray_push"], [stack, Value constInt(valueType, num, false)], "")
+	    callPrimitive(builder, "StakoArray_push", [stack, Value constInt(valueType, num, false)])
     }
 
     push: func ~stakoObject (builder: Builder, stack: Value, obj: Value) {
-        builder call(primitives["StakoArray_push"], [stack, obj], "")
+	    callPrimitive(builder, "StakoArray_push", [stack, obj])
     }
 
     addMainFunc: func (mainFn: Function) {
@@ -254,8 +258,8 @@ Compiler: class {
             [Type int32(), Type pointer(Type pointer(Type int8()))],
             ["argc", "argv"]
         ) build(|builder, args|
-            stack := builder call(primitives["StakoArray_new"], [Value constInt(sizeType, 100, false)], "stack")
-            builder call(mainFn, [stack], "")
+	        stack := callPrimitive(builder, "StakoArray_new", [Value constInt(sizeType, 100, false)])
+            builder call(mainFn, [stack])
             builder ret(Value constInt(Type int32(), 0, false))
         )
     }
