@@ -126,50 +126,96 @@ Compiler: class {
 	    fn: Function
 	    
         output: Type
-        match(defn stackEffect outputs size) {
-            case 0 => output = Type void_()
-            case 1 => output = translateCType(defn stackEffect outputs[0])
-            case => Exception new("cfuncs should have zero or one output!") throw()
+        outputSigned? := false
+        if(defn stackEffect outputs size == 0) {
+	        output = Type void_()
+        } else if(defn stackEffect outputs size == 1) {
+	        // Odd hack here to avoid odd rock bug.
+	        (output1, outputSigned1?) := translateCType(defn stackEffect outputs[0])
+	        output = output1
+	        outputSigned? = outputSigned1?
+        } else {
+	        Exception new("cfuncs should have zero or one output!") throw()
         }
         
         inputs := ArrayList<Type> new()
+        signs := ArrayList<Bool> new()
         for(input in defn stackEffect inputs) {
-	        inputs add(translateCType(input))
+	        (type, signed?) := translateCType(input)
+	        inputs add(type)
+	        signs add(signed?)
         }
-        fnType := Type function(output, inputs)
-        cfunc := module addFunction(defn name, fnType)
+        cfunc := module addFunction(defn name, Type function(output, inputs))
+        
         fn = module addFunction("Stako_" + defn name, wordFuncType)
         fn build(|builder, args|
+	        // --- Aquire arguments from datastack ---
 	        callArgs := ArrayList<Value> new()
+	        i := 0
 	        for(arg in cfunc args backward()) {
-	            popped := builder call(primitives["StakoArray_pop"], [args[0]], "")
+		        signed? := signs[i]
+	            popped := builder call(primitives["StakoArray_pop"], [args[0]])
 	            if(arg type() == Type pointer(Type int8())) {
-	                obj := builder call(primitives["StakoValue_toStakoObject"], [popped], "")
-	                str := builder call(primitives["StakoObject_getData"], [obj], "")
-	                cstr := builder call(primitives["StakoString_toCString"], [str], "")
+	                obj := builder call(primitives["StakoValue_toStakoObject"], [popped])
+	                // TODO: Check if it's actually a StakoString.
+	                str := builder call(primitives["StakoObject_getData"], [obj])
+	                cstr := builder call(primitives["StakoString_toCString"], [str])
 	                callArgs add(cstr)
 	            } else {
-	                converted := builder call(primitives["StakoValue_toInt"], [popped], "")
-	                callArgs add(builder truncOrBitcast(converted, arg type(), ""))
+	                converted := builder call(primitives["StakoValue_toInt"], [popped])
+	                callArgs add(castCInt(builder, converted, arg type(), signed?))
 	            }
+	            i += 1
 	        }
 	        if(callArgs size > 0) callArgs reverse!() // workaround, reverse! is broken on empty lists
-	        ret := builder call(cfunc, callArgs toArray() as Value*, callArgs size as UInt, "")
+	        
+	        // --- Call the C function ---
+	        ret := builder call(cfunc, callArgs)
+	        
+	        // -- Deal with the return value ---
 	        if(ret type() == Type pointer(Type int8())) {
 	            s := builder call(primitives["StakoString_newWithoutLength"], [ret], "str")
 	            obj := builder call(primitives["StakoObject_new"], [Value constInt(Type int32(), 1, false), s], "obj")
 	            val := builder call(primitives["StakoValue_fromStakoObject"], [obj], "val")
-	            builder call(primitives["StakoArray_push"], [args[0], val], "")
+	            builder call(primitives["StakoArray_push"], [args[0], val])
 	        } else if(ret type() != Type void_()) {
-	            convertedRet := builder call(primitives["StakoValue_fromInt"], [builder zextOrBitcast(ret, sizeType, "")], "")
-	            builder call(primitives["StakoArray_push"], [args[0], convertedRet], "")
+		        castedInt := castCInt(builder, ret, sizeType, outputSigned?)
+	            convertedRet := builder call(primitives["StakoValue_fromInt"], [castedInt])
+	            builder call(primitives["StakoArray_push"], [args[0], convertedRet])
 	        }
 	        builder ret()
         )
         fn
     }
 
-    translateCType: func (ctype: String) -> Type {
+    castCInt: func (builder: Builder, value: Value, targetType: Type, signed?: Bool) -> Value {
+        origWidth := value type() getIntTypeWidth()
+	    targetWidth := targetType getIntTypeWidth()
+	    if(origWidth == targetWidth) {
+		    value
+	    } else if(origWidth > targetWidth) {
+		    builder trunc(value, targetType, "")
+	    } else {
+		    if(signed?)
+			    builder sext(value, targetType, "")
+		    else
+			    builder zext(value, targetType, "")
+	    }
+    }
+
+    translateCType: func (ctype: String) -> (Type, Bool) {
+	    signed? := true
+	    split := ctype indexOf('-')
+	    if(split != -1) {
+	        modifier := ctype[0..split]
+	        ctype = ctype[split+1..-1]
+	        match modifier {
+		        case "signed"   => signed? = true
+		        case "unsigned" => signed? = false
+		        case => Exception new("Invalid c-type modifier '%s'." format(modifier))
+		    }
+	    }
+	    
         pointerDepth := 0
         for(c in ctype backward()) {
             if(c == '*')
@@ -179,15 +225,15 @@ Compiler: class {
         }
         baseType := ctype[0..-pointerDepth-1]
         llvmType := match baseType {
-            case "char" => Type int8()
-            case "short" => Type int16()
-            case "int" => Type int32()
-            case "long" => Type int64()
-            case "size_t" => sizeType
-            case "void" => Type void_()
+            case "char"   => signed? = false; Type int8()
+            case "short"  => Type int16()
+            case "int"    => Type int32()
+            case "long"   => Type int64()
+            case "size_t" => signed? = false; sizeType
+            case "void"   => Type void_()
         }
         pointerDepth times(|| llvmType = Type pointer(llvmType))
-        llvmType
+        return (llvmType, signed?)
     }
 
     addWordCall: func (builder: Builder, stack: Value, fn: Function) {
