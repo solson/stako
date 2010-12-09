@@ -114,50 +114,58 @@ Compiler: class {
             case "primitive" => 
                 fn = module addFunction("StakoPrimitive_" + primitivizeName(defn name), wordFuncType)
             case "cfunc" =>
-                output: Type
-                match(defn stackEffect outputs size) {
-                    case 0 => output = Type void_()
-                    case 1 => output = translateCType(defn stackEffect outputs[0])
-                    case => Exception new("cfuncs should have zero or one output!") throw()
-                }
-                inputs := ArrayList<Type> new()
-                for(input in defn stackEffect inputs) {
-                    inputs add(translateCType(input))
-                }
-                fnType := Type function(output, inputs toArray() as Type*, inputs size as UInt, false as Int)
-                cfunc := module addFunction(defn name, fnType)
-                fn = module addFunction("Stako_" + defn name, wordFuncType)
-                fn build(|builder, args|
-                    callArgs := ArrayList<Value> new()
-                    for(arg in cfunc args backward()) {
-                        popped := builder call(primitives["StakoArray_pop"], [args[0]], "")
-                        if(arg type() == Type pointer(Type int8())) {
-                            obj := builder call(primitives["StakoValue_toStakoObject"], [popped], "")
-                            str := builder call(primitives["StakoObject_getData"], [obj], "")
-                            cstr := builder call(primitives["StakoString_toCString"], [str], "")
-                            callArgs add(cstr)
-                        } else {
-                            converted := builder call(primitives["StakoValue_toInt"], [popped], "")
-                            callArgs add(builder truncOrBitcast(converted, arg type(), ""))
-                        }
-                    }
-                    if(callArgs size > 0) callArgs reverse!() // workaround, reverse! is broken on empty lists
-                    ret := builder call(cfunc, callArgs toArray() as Value*, callArgs size as UInt, "")
-                    if(ret type() == Type pointer(Type int8())) {
-                        s := builder call(primitives["StakoString_newWithoutLength"], [ret], "str")
-                        obj := builder call(primitives["StakoObject_new"], [Value constInt(Type int32(), 1, false), s], "obj")
-                        val := builder call(primitives["StakoValue_fromStakoObject"], [obj], "val")
-                        builder call(primitives["StakoArray_push"], [args[0], val], "")
-                    } else if(ret type() != Type void_()) {
-                        convertedRet := builder call(primitives["StakoValue_fromInt"], [builder zextOrBitcast(ret, sizeType, "")], "")
-                        builder call(primitives["StakoArray_push"], [args[0], convertedRet], "")
-                    }
-                    builder ret()
-                )
+	            fn = addCFunc(defn)
             case "word" =>
                 fn = module addFunction("Stako_" + defn name, wordFuncType)
         }
         fn args[0] setName("stack")
+        fn
+    }
+
+    addCFunc: func (defn: Definition) -> Function {
+	    fn: Function
+	    
+        output: Type
+        match(defn stackEffect outputs size) {
+            case 0 => output = Type void_()
+            case 1 => output = translateCType(defn stackEffect outputs[0])
+            case => Exception new("cfuncs should have zero or one output!") throw()
+        }
+        
+        inputs := ArrayList<Type> new()
+        for(input in defn stackEffect inputs) {
+	        inputs add(translateCType(input))
+        }
+        fnType := Type function(output, inputs)
+        cfunc := module addFunction(defn name, fnType)
+        fn = module addFunction("Stako_" + defn name, wordFuncType)
+        fn build(|builder, args|
+	        callArgs := ArrayList<Value> new()
+	        for(arg in cfunc args backward()) {
+	            popped := builder call(primitives["StakoArray_pop"], [args[0]], "")
+	            if(arg type() == Type pointer(Type int8())) {
+	                obj := builder call(primitives["StakoValue_toStakoObject"], [popped], "")
+	                str := builder call(primitives["StakoObject_getData"], [obj], "")
+	                cstr := builder call(primitives["StakoString_toCString"], [str], "")
+	                callArgs add(cstr)
+	            } else {
+	                converted := builder call(primitives["StakoValue_toInt"], [popped], "")
+	                callArgs add(builder truncOrBitcast(converted, arg type(), ""))
+	            }
+	        }
+	        if(callArgs size > 0) callArgs reverse!() // workaround, reverse! is broken on empty lists
+	        ret := builder call(cfunc, callArgs toArray() as Value*, callArgs size as UInt, "")
+	        if(ret type() == Type pointer(Type int8())) {
+	            s := builder call(primitives["StakoString_newWithoutLength"], [ret], "str")
+	            obj := builder call(primitives["StakoObject_new"], [Value constInt(Type int32(), 1, false), s], "obj")
+	            val := builder call(primitives["StakoValue_fromStakoObject"], [obj], "val")
+	            builder call(primitives["StakoArray_push"], [args[0], val], "")
+	        } else if(ret type() != Type void_()) {
+	            convertedRet := builder call(primitives["StakoValue_fromInt"], [builder zextOrBitcast(ret, sizeType, "")], "")
+	            builder call(primitives["StakoArray_push"], [args[0], convertedRet], "")
+	        }
+	        builder ret()
+        )
         fn
     }
 
