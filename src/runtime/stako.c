@@ -226,10 +226,10 @@ static void prettyPrint(StakoObject *obj) {
 		printf("%ld", (ssize_t) obj->data);
 		break;
 	case STAKO_ALIEN:
-		printf("#<alien:%p>", obj->data);
+		printf("#<alien:%#014lx>", (size_t) obj->data);
 		break;
 	default:
-		printf("#<unknown-type:%i>", obj->type);
+		printf("#<unknown type=%i data=%p>", obj->type, obj->data);
 	}
 	putchar('\n');
 }
