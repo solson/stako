@@ -223,7 +223,7 @@ static void prettyPrint(StakoObject *obj) {
 		putchar(']');
 		break;
 	case STAKO_FIXNUM:
-		printf("%i", obj->data);
+		printf("%ld", (ssize_t) obj->data);
 		break;
 	case STAKO_ALIEN:
 		printf("#<alien:%p>", obj->data);
@@ -243,7 +243,7 @@ void StakoPrimitive_pp(StakoArray *stack) {
 	void name(StakoArray *stack) { \
 	    size_t y = (size_t) StakoArray_pop(stack)->data; \
 	    size_t x = (size_t) StakoArray_pop(stack)->data; \
-	    StakoArray_push(stack, StakoObject_new(STAKO_FIXNUM, x op y)); \
+	    StakoArray_push(stack, StakoObject_new(STAKO_FIXNUM, (void*) (x op y))); \
 	}
 
 // ( x y -- x*y )
