@@ -7,11 +7,9 @@ Compiler: class {
     vocab: Vocab
     module: Module
     target: Target
-    
-    sizeType: Type
-    valueType: Type
-    arrayType: Type // Also used for stacks and quotations.
-    wordFuncType: Type
+
+    sizeType, objType, arrayType, wordType, strType, fixnumType, alienType,
+        wordFuncType, voidPtrType: Type
     
     outputFile: String
     stakoLib: String
@@ -44,12 +42,9 @@ Compiler: class {
                     case word: Word =>
                         addWordCall(builder, stack, fns[word definition name])
                     case num: NumberLiteral =>
-                        push(builder, stack, (num number << 1) | 1)
+                        push(builder, stack, newFixnum(builder, num number))
                     case str: StringLiteral =>
-	                    s := callPrimitive(builder, "StakoString_new", [builder globalStringPtr(str string, ""), Value constInt(sizeType, str string size, false)])
-                        obj := callPrimitive(builder, "StakoObject_new", [Value constInt(Type int32(), 1, false), s])
-                        val := callPrimitive(builder, "StakoValue_fromStakoObject", [obj])
-                        push(builder, stack, val)
+	                    push(builder, stack, newString(builder, str string))
 //                case wrapper: Wrapper =>
 //                case =>
 //                    push(data)
@@ -57,7 +52,7 @@ Compiler: class {
             }
 
             builder ret()
-        }
+            }
         }
 
         addMainFunc(fns["main"])
@@ -76,26 +71,35 @@ Compiler: class {
     }
     
     addPrimitives: func {
-        sizeType = target intPointerType()
-        valueType = sizeType
-        arrayType = Type pointer(Type struct_([Type pointer(sizeType), sizeType, sizeType]))
+	    sizeType     = target intPointerType()
+        voidPtrType  = Type pointer(Type int8()) // C's void*
+        objType      = Type pointer(Type struct_([Type int32(), voidPtrType]))
+        arrayType    = Type pointer(Type struct_([Type pointer(objType), sizeType, sizeType]))
+        strType      = Type pointer(Type struct_([sizeType, Type pointer(Type int8())]))
         wordFuncType = Type function(Type void_(), [arrayType])
-        
+        wordType     = Type pointer(Type struct_([strType, Type pointer(wordFuncType), arrayType]))
+        fixnumType   = sizeType
+        alienType    = Type pointer(voidPtrType)
+
+        module addTypeName("StakoObject", objType)
+        module addTypeName("StakoString", strType)
+        module addTypeName("StakoWord", wordType)
+        module addTypeName("StakoWordFunc", wordFuncType)
         module addTypeName("StakoArray", arrayType)
         
-        addPrimitive("StakoValue_isFixnum", Type int32(), [valueType])
-        addPrimitive("StakoValue_toInt", sizeType, [valueType])
-        addPrimitive("StakoValue_fromInt", valueType, [sizeType])
-        addPrimitive("StakoValue_toStakoObject", Type pointer(Type int8()), [sizeType])
-        addPrimitive("StakoValue_fromStakoObject", sizeType, [Type pointer(Type int8())])
-        addPrimitive("StakoObject_new", Type pointer(Type int8()), [Type int32(), Type pointer(Type int8())])
-        addPrimitive("StakoObject_getData", Type pointer(Type int8()), [Type pointer(Type int8())])
-        addPrimitive("StakoString_new", Type pointer(Type int8()), [Type pointer(Type int8()), sizeType])
-        addPrimitive("StakoString_newWithoutLength", Type pointer(Type int8()), [Type pointer(Type int8())])
-        addPrimitive("StakoString_toCString", Type pointer(Type int8()), [Type pointer(Type int8())])
-        addPrimitive("StakoArray_new", arrayType, [sizeType])
-        addPrimitive("StakoArray_push", Type void_(), [arrayType, valueType])
-        addPrimitive("StakoArray_pop", valueType, [arrayType])
+        addPrimitive("StakoObject_new",              objType,      [Type int32(), voidPtrType])
+        addPrimitive("StakoObject_isType",           Type int32(), [objType, Type int32()])
+        addPrimitive("StakoObject_getData",          voidPtrType,  [objType])
+        addPrimitive("StakoObject_getType",          Type int32(), [objType])
+
+        addPrimitive("StakoString_new",              strType,      [Type pointer(Type int8()), sizeType])
+        addPrimitive("StakoString_newWithoutLength", voidPtrType,  [Type pointer(Type int8())])
+        addPrimitive("StakoString_toCString",        Type pointer(Type int8()), [strType])
+        addPrimitive("StakoString_copyToCString",    Type pointer(Type int8()), [strType])
+        
+        addPrimitive("StakoArray_new",               arrayType,    [sizeType])
+        addPrimitive("StakoArray_push",              Type void_(), [arrayType, objType])
+        addPrimitive("StakoArray_pop",               objType,    [arrayType])
     }
 
     addPrimitive: func (name: String, ret: Type, args: Type[]) {
@@ -159,16 +163,16 @@ Compiler: class {
 	        i := 0
 	        for(arg in cfunc args backward()) {
 		        signed? := signs[i]
-		        popped := callPrimitive(builder, "StakoArray_pop", [stack])
+		        obj := callPrimitive(builder, "StakoArray_pop", [stack])
+		        data := callPrimitive(builder, "StakoObject_getData", [obj])
 	            if(arg type() == Type pointer(Type int8())) {
-		            obj := callPrimitive(builder, "StakoValue_toStakoObject", [popped])
 	                // TODO: Check if it's actually a StakoString.
-		            str := callPrimitive(builder, "StakoObject_getData", [obj])
+		            str := builder pointerCast(data, strType, "")
 		            cstr := callPrimitive(builder, "StakoString_toCString", [str])
 	                callArgs add(cstr)
 	            } else {
-		            converted := callPrimitive(builder, "StakoValue_toInt", [popped])
-	                callArgs add(castCInt(builder, converted, arg type(), signed?))
+		            fixnum := builder ptrtoint(data, sizeType, "")
+	                callArgs add(builder intCast(fixnum, arg type(), ""))
 	            }
 	            i += 1
 	        }
@@ -179,21 +183,16 @@ Compiler: class {
 	        
 	        // -- Deal with the return value ---
 	        if(ret type() == Type pointer(Type int8())) {
-	            str := callPrimitive(builder, "StakoString_newWithoutLength", [ret])
-	            obj := callPrimitive(builder, "StakoObject_new", [Value constInt(Type int32(), 1, false), str])
-	            val := callPrimitive(builder, "StakoValue_fromStakoObject", [obj])
-	            callPrimitive(builder, "StakoArray_push", [stack, val])
+	            push(builder, stack, newString(builder, ret))
 	        } else if(ret type() != Type void_()) {
-		        castedInt := castCInt(builder, ret, sizeType, outputSigned?)
-	            convertedRet := callPrimitive(builder, "StakoValue_fromInt", [castedInt])
-	            callPrimitive(builder, "StakoArray_push", [stack, convertedRet])
+	            push(builder, stack, newFixnum(builder, ret))
 	        }
 	        builder ret()
         )
         fn
     }
 
-    castCInt: func (builder: Builder, value: Value, targetType: Type, signed?: Bool) -> Value {
+/*    castCInt: func (builder: Builder, value: Value, targetType: Type, signed?: Bool) -> Value {
         origWidth := value type() getIntTypeWidth()
 	    targetWidth := targetType getIntTypeWidth()
 	    if(origWidth == targetWidth) {
@@ -207,18 +206,15 @@ Compiler: class {
 			    builder zext(value, targetType, "")
 	    }
     }
+*/
 
     translateCType: func (ctype: String) -> (Type, Bool) {
+	    modifier: String
 	    signed? := true
 	    split := ctype indexOf('-')
 	    if(split != -1) {
 	        modifier := ctype[0..split]
 	        ctype = ctype[split+1..-1]
-	        match modifier {
-		        case "signed"   => signed? = true
-		        case "unsigned" => signed? = false
-		        case => Exception new("Invalid c-type modifier '%s'." format(modifier))
-		    }
 	    }
 	    
         pointerDepth := 0
@@ -238,6 +234,15 @@ Compiler: class {
             case "void"   => Type void_()
         }
         pointerDepth times(|| llvmType = Type pointer(llvmType))
+        
+        if(split != -1) {
+	        match modifier {
+	            case "signed"   => signed? = true
+	            case "unsigned" => signed? = false
+	            case => Exception new("Invalid c-type modifier '%s'." format(modifier))
+	        }
+        }
+        
         return (llvmType, signed?)
     }
 
@@ -245,9 +250,10 @@ Compiler: class {
         builder call(fn, [stack])
     }
 
-    push: func (builder: Builder, stack: Value, num: LLong) {
+/*    push: func (builder: Builder, stack: Value, num: LLong) {
 	    callPrimitive(builder, "StakoArray_push", [stack, Value constInt(valueType, num, false)])
     }
+*/
 
     push: func ~stakoObject (builder: Builder, stack: Value, obj: Value) {
 	    callPrimitive(builder, "StakoArray_push", [stack, obj])
@@ -263,9 +269,41 @@ Compiler: class {
             builder ret(Value constInt(Type int32(), 0, false))
         )
     }
+
+    newObject: func (builder: Builder, type: StakoType, data: Value) -> Value {
+	    voidPtrData := builder pointerCast(data, voidPtrType, "")
+        callPrimitive(builder, "StakoObject_new", [type llvmValue(), voidPtrData])
+    }
+
+    newString: func (builder: Builder, text: Value) -> Value {
+        str := callPrimitive(builder, "StakoString_newWithoutLength", [text])
+        newObject(builder, StakoType string, str)
+    }
+
+    newString: func ~literal (builder: Builder, text: String) -> Value {
+        str := callPrimitive(builder, "StakoString_new", [builder globalStringPtr(text, ""),
+		        Value constInt(sizeType, text size, false)])
+        newObject(builder, StakoType string, str)
+    }
+
+    newFixnum: func (builder: Builder, number: Value) -> Value {
+	    ptr := builder inttoptr(number, voidPtrType, "")
+        newObject(builder, StakoType fixnum, ptr)
+    }
+
+    newFixnum: func ~literal (builder: Builder, number: LLong) -> Value {
+	    fixnum := Value constInt(sizeType, number, false)
+	    ptr := builder inttoptr(fixnum, voidPtrType, "")
+        newObject(builder, StakoType fixnum, ptr)
+    }
 }
 
-// The down-low of StakoValues
-// If the Least Significant Bit (LSB) is 1, the value is a literal fixnum.
-// If the LSB is 0, the value is a pointer to an object.
-// If all bits are 0, the value is the special object `f` (Stako's false/nil)
+StakoType: enum {
+	word = 0, string, array, fixnum, alien
+}
+
+extend StakoType {
+	llvmValue: func -> Value {
+		Value constInt(Type int32(), this as ULLong, false)
+	}
+}

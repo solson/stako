@@ -1,27 +1,10 @@
 #include "stako.h"
 
-/* Operations on StakoValues */
-int StakoValue_isFixnum(StakoValue val) {
-    return val & 1;
-}
-
-size_t StakoValue_toInt(StakoValue val) {
-    return val >> 1;
-}
-
-StakoValue StakoValue_fromInt(size_t val) {
-    return (val << 1) | 1;
-}
-
-StakoObject *StakoValue_toStakoObject(StakoValue val) {
-    return (StakoObject*)val;
-}
-
-StakoValue StakoValue_fromStakoObject(StakoObject *obj) {
-    return (StakoValue)obj;
-}
-
 /* Operations on StakoObjects */
+int StakoValue_isType(StakoObject *obj, StakoType type) {
+    return obj->type == type;
+}
+
 StakoObject *StakoObject_new(StakoType type, void *data) {
     StakoObject *obj = GC_MALLOC(sizeof(StakoObject));
     obj->type = type;
@@ -39,7 +22,7 @@ StakoType StakoObject_getType(StakoObject *obj) {
 
 /* Operations on StakoStrings */
 StakoString *StakoString_new(char *text, size_t length) {
-    StakoString *str = GC_MALLOC(sizeof(StakoString));
+	StakoString *str = GC_MALLOC(sizeof(StakoString));
     str->length = length;
     str->text = text;
     return str;
@@ -59,13 +42,14 @@ char *StakoString_toCString(StakoString *str) {
 char *StakoString_copyToCString(StakoString *str) {
     char *text = GC_MALLOC(str->length + 1);
     memcpy(text, str->text, str->length + 1);
+    text[str->length] = '\0';
     return text;
 }
 
 /* Operations on StakoArrays */
 StakoArray *StakoArray_new(size_t capacity) {
     StakoArray *this = GC_MALLOC(sizeof(StakoArray));
-    this->data = GC_MALLOC(sizeof(StakoValue) * capacity);
+    this->data = GC_MALLOC(sizeof(StakoObject *) * capacity);
     this->capacity = capacity;
     this->size = 0;
     return this;
@@ -78,41 +62,41 @@ StakoObject *StakoArray_toStakoObject(StakoArray *this) {
 void StakoArray_ensureCapacity(StakoArray *this, size_t newSize) {
     if(newSize > this->capacity) {
         this->capacity = newSize * 2;
-        this->data = GC_REALLOC(this->data, this->capacity * sizeof(StakoValue));
+        this->data = GC_REALLOC(this->data, this->capacity * sizeof(StakoObject *));
     }
 }
 
-void StakoArray_push(StakoArray *this, StakoValue element) {
+void StakoArray_push(StakoArray *this, StakoObject *element) {
     StakoArray_ensureCapacity(this, this->size + 1);
     this->data[this->size] = element;
     this->size++;
 }
 
-StakoValue StakoArray_pop(StakoArray *this) {
+StakoObject *StakoArray_pop(StakoArray *this) {
     this->size--;
     return this->data[this->size];
 }
 
-StakoValue StakoArray_peek(StakoArray *this) {
+StakoObject *StakoArray_peek(StakoArray *this) {
     return this->data[this->size - 1];
 }
 
-StakoValue StakoArray_peek_index(StakoArray *this, size_t index) {
+StakoObject *StakoArray_peek_index(StakoArray *this, size_t index) {
     return this->data[this->size - 1 - index];
 }
 
 /* Stako builtins */
 // ( size -- address )
 void StakoPrimitive_gc__MINUS__malloc(StakoArray *stack) {
-    size_t size = StakoValue_toInt(StakoArray_pop(stack));
-    StakoArray_push(stack, StakoValue_fromInt((size_t)GC_MALLOC(size)));
+	size_t size = (size_t) StakoArray_pop(stack)->data;
+    StakoArray_push(stack, StakoObject_new(STAKO_ALIEN, GC_MALLOC(size)));
 }
 
 // ( address size -- address )
 void StakoPrimitive_gc__MINUS__realloc(StakoArray *stack) {
-    size_t size = StakoValue_toInt(StakoArray_pop(stack));
-    size_t address = StakoValue_toInt(StakoArray_pop(stack));
-    StakoArray_push(stack, StakoValue_fromInt((size_t)GC_REALLOC((void*)address, size)));
+	size_t size = (size_t) StakoArray_pop(stack)->data;
+	void *address = StakoArray_pop(stack)->data;
+	StakoArray_push(stack, StakoObject_new(STAKO_ALIEN, GC_REALLOC(address, size)));
 }
 
 // ( x -- )
@@ -153,21 +137,21 @@ void StakoPrimitive_3dup(StakoArray *stack) {
 
 // ( x y -- x x y )
 void StakoPrimitive_dupd(StakoArray *stack) {
-    StakoValue y = StakoArray_pop(stack);
+    StakoObject *y = StakoArray_pop(stack);
     StakoPrimitive_dup(stack);
     StakoArray_push(stack, y);
 }
 
 // ( x y -- y )
 void StakoPrimitive_nip(StakoArray *stack) {
-    StakoValue y = StakoArray_pop(stack);
+    StakoObject *y = StakoArray_pop(stack);
     StakoArray_pop(stack);
     StakoArray_push(stack, y);
 }
 
 // ( x y z -- z )
 void StakoPrimitive_2nip(StakoArray *stack) {
-    StakoValue z = StakoArray_pop(stack);
+    StakoObject *z = StakoArray_pop(stack);
     StakoArray_pop(stack);
     StakoArray_pop(stack);
     StakoArray_push(stack, z);
@@ -185,9 +169,9 @@ void StakoPrimitive_pick(StakoArray *stack) {
 
 // ( x y z -- y z x )
 void StakoPrimitive_rot(StakoArray *stack) {
-    StakoValue z = StakoArray_pop(stack);
-    StakoValue y = StakoArray_pop(stack);
-    StakoValue x = StakoArray_pop(stack);
+    StakoObject *z = StakoArray_pop(stack);
+    StakoObject *y = StakoArray_pop(stack);
+    StakoObject *x = StakoArray_pop(stack);
     StakoArray_push(stack, y);
     StakoArray_push(stack, z);
     StakoArray_push(stack, x);
@@ -195,9 +179,9 @@ void StakoPrimitive_rot(StakoArray *stack) {
 
 // ( x y z -- z x y )
 void StakoPrimitive___MINUS__rot(StakoArray *stack) {
-    StakoValue z = StakoArray_pop(stack);
-    StakoValue y = StakoArray_pop(stack);
-    StakoValue x = StakoArray_pop(stack);
+    StakoObject *z = StakoArray_pop(stack);
+    StakoObject *y = StakoArray_pop(stack);
+    StakoObject *x = StakoArray_pop(stack);
     StakoArray_push(stack, z);
     StakoArray_push(stack, x);
     StakoArray_push(stack, y);
@@ -205,59 +189,76 @@ void StakoPrimitive___MINUS__rot(StakoArray *stack) {
 
 // ( x y -- y x )
 void StakoPrimitive_swap(StakoArray *stack) {
-    StakoValue y = StakoArray_pop(stack);
-    StakoValue x = StakoArray_pop(stack);
+    StakoObject *y = StakoArray_pop(stack);
+    StakoObject *x = StakoArray_pop(stack);
     StakoArray_push(stack, y);
     StakoArray_push(stack, x);
 }
 
 // ( x y z -- y x z )
 void StakoPrimitive_swapd(StakoArray *stack) {
-    StakoValue z = StakoArray_pop(stack);
-    StakoValue y = StakoArray_pop(stack);
-    StakoValue x = StakoArray_pop(stack);
+    StakoObject *z = StakoArray_pop(stack);
+    StakoObject *y = StakoArray_pop(stack);
+    StakoObject *x = StakoArray_pop(stack);
     StakoArray_push(stack, y);
     StakoArray_push(stack, x);
     StakoArray_push(stack, z);
 }
 
+static void prettyPrint(StakoObject *obj) {
+	StakoArray *array;
+	switch(obj->type) {
+	case STAKO_WORD:
+		puts(((StakoWord*) obj->data)->name->text);
+		break;
+	case STAKO_STRING:
+		printf("\"%s\"", ((StakoString *) obj->data)->text);
+		break;
+	case STAKO_ARRAY:
+		array = (StakoArray *) obj->data;
+		putchar('[');
+		for(int i = 0; i < array->size; i++) {
+			prettyPrint(array->data[i]);
+		}
+		putchar(']');
+		break;
+	case STAKO_FIXNUM:
+		printf("%i", obj->data);
+		break;
+	case STAKO_ALIEN:
+		printf("#<alien:%p>", obj->data);
+		break;
+	default:
+		printf("#<unknown-type:%i>", obj->type);
+	}
+	putchar('\n');
+}
+
 // ( n -- )
 void StakoPrimitive_pp(StakoArray *stack) {
-    size_t x = StakoValue_toInt(StakoArray_pop(stack));
-    printf("%zi\n", x);
+	prettyPrint(StakoArray_pop(stack));
 }
+
+#define STAKO_MATH_OP(name, op) \
+	void name(StakoArray *stack) { \
+	    size_t y = (size_t) StakoArray_pop(stack)->data; \
+	    size_t x = (size_t) StakoArray_pop(stack)->data; \
+	    StakoArray_push(stack, StakoObject_new(STAKO_FIXNUM, x op y)); \
+	}
 
 // ( x y -- x*y )
-void StakoPrimitive_fixnum__MULT__(StakoArray *stack) {
-    size_t y = StakoValue_toInt(StakoArray_pop(stack));
-    size_t x = StakoValue_toInt(StakoArray_pop(stack));
-    StakoArray_push(stack, StakoValue_fromInt(x * y));
-}
+STAKO_MATH_OP(StakoPrimitive_fixnum__MULT__, *)
 
 // ( x y -- x+y )
-void StakoPrimitive_fixnum__PLUS__(StakoArray *stack) {
-    size_t y = StakoValue_toInt(StakoArray_pop(stack));
-    size_t x = StakoValue_toInt(StakoArray_pop(stack));
-    StakoArray_push(stack, StakoValue_fromInt(x + y));
-}
+STAKO_MATH_OP(StakoPrimitive_fixnum__PLUS__, +)
 
 // ( x y -- x-y )
-void StakoPrimitive_fixnum__MINUS__(StakoArray *stack) {
-    size_t y = StakoValue_toInt(StakoArray_pop(stack));
-    size_t x = StakoValue_toInt(StakoArray_pop(stack));
-    StakoArray_push(stack, StakoValue_fromInt(x - y));
-}
+STAKO_MATH_OP(StakoPrimitive_fixnum__MINUS__, -)
 
 // ( x y -- x/y )
-void StakoPrimitive_fixnum__DIV__i(StakoArray *stack) {
-    size_t y = StakoValue_toInt(StakoArray_pop(stack));
-    size_t x = StakoValue_toInt(StakoArray_pop(stack));
-    StakoArray_push(stack, StakoValue_fromInt(x / y));
-}
+STAKO_MATH_OP(StakoPrimitive_fixnum__DIV__i, /)
 
 // ( x y -- x%y )
-void StakoPrimitive_fixnum__MINUS__mod(StakoArray *stack) {
-    size_t y = StakoValue_toInt(StakoArray_pop(stack));
-    size_t x = StakoValue_toInt(StakoArray_pop(stack));
-    StakoArray_push(stack, StakoValue_fromInt(x % y));
-}
+STAKO_MATH_OP(StakoPrimitive_fixnum__MINUS__mod, %)
+
+#undef STAKO_MATH_OP

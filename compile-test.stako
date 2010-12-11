@@ -51,19 +51,21 @@ strcat: <cfunc> (char* char* -- char*).
 strcpy: <cfunc> (int char* -- char*).
 
 putchar: <cfunc> (int -- int).
-put1: putchar drop.
-nl: 10 put1.
+print1: putchar drop.
+nl: 10 print1.
 
 time: <cfunc> (int -- int).
 rand: <cfunc> (-- int).
 srand: <cfunc> (int --).
 
 main:
-  104 put1 105 put1 nl
+  104 print1 105 print1 nl
   12 sq pp
   12 30 + pp
   0 time srand # abusing the time func
   rand pp rand pp
   "hi" println
   "hello world" strlen pp
-  20 gc-malloc "hello " strcpy "ldunn" strcat strfry println.
+  20 gc-malloc "hello " strcpy "ldunn" strcat strfry println
+  20 gc-malloc pp
+  "foobar" pp.
