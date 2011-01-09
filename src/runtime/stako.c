@@ -239,10 +239,16 @@ void StakoPrimitive_pp(StakoArray *stack) {
 	prettyPrint(StakoArray_pop(stack));
 }
 
+// ( n -- &n )
+void StakoPrimitive_address__MINUS__of(StakoArray *stack) {
+	StakoObject *obj = StakoArray_pop(stack);
+	StakoArray_push(stack, StakoObject_new(STAKO_FIXNUM, (void*) &obj->data));
+}
+
 #define STAKO_MATH_OP(name, op) \
 	void name(StakoArray *stack) { \
-	    size_t y = (size_t) StakoArray_pop(stack)->data; \
-	    size_t x = (size_t) StakoArray_pop(stack)->data; \
+	    ssize_t y = (ssize_t) StakoArray_pop(stack)->data; \
+	    ssize_t x = (ssize_t) StakoArray_pop(stack)->data; \
 	    StakoArray_push(stack, StakoObject_new(STAKO_FIXNUM, (void*) (x op y))); \
 	}
 
