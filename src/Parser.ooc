@@ -60,26 +60,24 @@ Parser: class {
         type := WordType new()
 
         // The word type, if omitted in the source code, is
-        // assumed to be <word>, a normal function word.
-        if(reader peek() != '<') {
+        // assumed to be 'word', a normal function word.
+        if(!wordChar?(reader peek())) {
             type words add("word")
             return type
         }
-        read()
 
         while(true) {
             skipWhitespace()
-            assertHasMore("Word type met end of file, expected '>'.")
+            assertHasMore("Word type met end of file.")
             
             c := reader peek()
-            if(c == '>') {
-                read()
+            if(!wordChar?(c)) {
                 break
             } else if(wordChar?(c)) {
                 word := Buffer new()
                 while(reader hasNext?()) {
                     c := read()
-                    if(wordChar?(c) && c != '>') {
+                    if(wordChar?(c)) {
                         word append(c)
                     } else {
                         rewind(1)
@@ -88,7 +86,7 @@ Parser: class {
                 }
                 type words add(word toString())
             } else {
-                error("Unexpected character: '%s', expected a word or '>'.", c)
+                error("Unexpected character: '%s', expected a word.", c)
             }
         }
         type

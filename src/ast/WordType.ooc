@@ -8,13 +8,11 @@ WordType: class extends Node {
 
     toString: func -> String {
         buf := Buffer new()
-        buf append("<")
         for(i in 0..words size) {
             buf append(words[i])
             if(i != words size - 1)
                 buf append(' ')
         }
-        buf append(">")
         buf toString()
     }
 }

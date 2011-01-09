@@ -1,67 +1,67 @@
-drop: <primitive> (x --).
-2drop: <primitive> (x y --).
-3drop: <primitive> (x y z --).
-dup: <primitive> (x -- x x).
-2dup: <primitive> (x y -- x y x y).
-3dup: <primitive> (x y z -- x y z x y z).
-dupd: <primitive> (x y -- x x y).
-nip: <primitive> (x y -- y).
-2nip: <primitive> (x y z -- z).
-over: <primitive> (x y -- x y x).
-pick: <primitive> (x y z -- x y z x).
-rot: <primitive> (x y z -- y z x).
--rot: <primitive> (x y z -- z x y).
-swap: <primitive> (x y -- y x).
-swapd: <primitive> (x y z -- y x z).
-fixnum*: <primitive> (x y -- x*y).
-fixnum+: <primitive> (x y -- x+y).
-fixnum-: <primitive> (x y -- x-y).
-fixnum/i: <primitive> (x y -- x/y).
-fixnum-mod: <primitive> (x y -- x%y).
+drop: primitive (x --).
+2drop: primitive (x y --).
+3drop: primitive (x y z --).
+dup: primitive (x -- x x).
+2dup: primitive (x y -- x y x y).
+3dup: primitive (x y z -- x y z x y z).
+dupd: primitive (x y -- x x y).
+nip: primitive (x y -- y).
+2nip: primitive (x y z -- z).
+over: primitive (x y -- x y x).
+pick: primitive (x y z -- x y z x).
+rot: primitive (x y z -- y z x).
+-rot: primitive (x y z -- z x y).
+swap: primitive (x y -- y x).
+swapd: primitive (x y z -- y x z).
+fixnum*: primitive (x y -- x*y).
+fixnum+: primitive (x y -- x+y).
+fixnum-: primitive (x y -- x-y).
+fixnum/i: primitive (x y -- x/y).
+fixnum-mod: primitive (x y -- x%y).
 
-pp: <primitive> (x --).
-gc-malloc: <primitive> (n -- alien).
-gc-realloc: <primitive> (alien n -- alien).
+pp: primitive (x --).
+gc-malloc: primitive (n -- alien).
+gc-realloc: primitive (alien n -- alien).
 
-#stdout: <symbol>.
-#show: <generic> (a --).
-#string: <class primitive>.
-#show: <method string>.
+#stdout: symbol.
+#show: generic (a --).
+#string: class primitive.
+#show: method string.
 
-#puts: <cfunc> (char* -- int).
-#my-puts: <cfunc puts> (char* -- int).
-#puts: <cfunc> (str:char* -- exitcode:int).
+#puts: cfunc (char* -- int).
+#my-puts: cfunc puts (char* -- int).
+#puts: cfunc (str:char* -- exitcode:int).
 
 #nl: "\n" puts.
 #println: (string --) puts nl.
 
-*: fixnum*.
-+: fixnum+.
-/i: fixnum/i.
-mod: fixnum-mod.
--: fixnum-.
+*: (x y -- z) fixnum*.
++: (x y -- z) fixnum+.
+/i: (x y -- z) fixnum/i.
+mod: (x y -- z) fixnum-mod.
+-: (x y -- z) fixnum-.
 
 sq: (x -- y) dup *.
 
-puts: <cfunc> (char* -- int).
+puts: cfunc (char* -- int).
 println: (str --) puts drop.
-strlen: <cfunc> (char* -- size_t).
-strfry: <cfunc> (char* -- char*).
-strcat: <cfunc> (char* char* -- char*).
-strcpy: <cfunc> (int char* -- char*).
+strlen: cfunc (char* -- size_t).
+strfry: cfunc (char* -- char*).
+strcat: cfunc (char* char* -- char*).
+strcpy: cfunc (int char* -- char*).
 
-putchar: <cfunc> (int -- int).
-print1: putchar drop.
-nl: 10 print1.
+putchar: cfunc (int -- int).
+print1: (c --) putchar drop.
+nl: (--) 10 print1.
 
-time: <cfunc> (int -- int).
-ctime: <cfunc> (size_t -- char*).
-rand: <cfunc> (-- int).
-srand: <cfunc> (int --).
+time: cfunc (int -- int).
+ctime: cfunc (size_t -- char*).
+rand: cfunc (-- int).
+srand: cfunc (int --).
 
-address-of: <primitive> (x -- &x).
+address-of: primitive (x -- &x).
 
-main:
+main: (--)
   104 print1 105 print1 nl
   12 sq pp
   12 30 + pp
