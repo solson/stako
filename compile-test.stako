@@ -55,8 +55,11 @@ print1: putchar drop.
 nl: 10 print1.
 
 time: <cfunc> (int -- int).
+ctime: <cfunc> (size_t -- char*).
 rand: <cfunc> (-- int).
 srand: <cfunc> (int --).
+
+address-of: <primitive> (x -- &x).
 
 main:
   104 print1 105 print1 nl
@@ -68,4 +71,5 @@ main:
   "hello world" strlen pp
   20 gc-malloc "hello " strcpy "ldunn" strcat strfry println
   20 gc-malloc pp
-  "foobar" pp.
+  "foobar" pp
+  0 time address-of ctime println.
