@@ -23,8 +23,10 @@ Definition: class extends Node {
         if(primitive?) {
             buf append("(primitive "). append(externName). append(')')
         } else {
-	        buf append(stackEffect toString()). append(' ')
+	        buf append(stackEffect toString())
             words := body body
+            if(words size > 0)
+	            buf append(' ')
             for(i in 0..words size) {
                 buf append(words[i] toString())
                 if(i != words size - 1)
