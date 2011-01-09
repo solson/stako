@@ -2,10 +2,7 @@ import Definition
 import structs/[ArrayList, HashMap]
 
 Vocab: class {
-    name: String
     definitions := HashMap<String, Definition> new()
-
-    init: func (=name) {}
 
     toString: func -> String {
         buf := Buffer new()

@@ -16,10 +16,7 @@ main: func (args: ArrayList<String>) {
         return 2
     }
 
-    // Strip the .stako off the end.
-    vocab := Vocab new(fileName[0..-7])
-
-    Parser new(vocab, fileName, File new(fileName) read()) parse()
+    vocab := Parser new(fileName, File new(fileName) read()) parse()
 
     vocab toString() println()
 

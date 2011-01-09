@@ -17,7 +17,7 @@ Compiler: class {
     primitives := HashMap<String, Function> new()
 
     init: func (=vocab, =outputFile, =stakoLib) {
-        module = Module new(vocab name)
+        module = Module new("stako")
         target = Target new(module getTarget())
     }
 
@@ -59,7 +59,7 @@ Compiler: class {
 
         File new("stako_tmp") mkdir()
 
-        baseFile := "stako_tmp/" + vocab name
+        baseFile := "stako_tmp/" + outputFile
         bitcodeFile := baseFile + ".bc"
         objectFile := baseFile + ".o"
 

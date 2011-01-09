@@ -2,7 +2,6 @@ import io/[File, FileReader, Reader, StringReader], structs/ArrayList
 import ast/[Node, Vocab, Definition, Word, WordType, StackEffect, Quotation, NumberLiteral, CharLiteral, StringLiteral, Wrapper]
 
 Parser: class {
-    vocab: Vocab
     source: String
     reader: Reader
 
@@ -10,27 +9,31 @@ Parser: class {
     line     := 1
     column   := 0
 
-    init: func (=vocab, =fileName) {
+    init: func (=fileName) {
         source = File new(fileName) read()
         reader = StringReader new(source)
     }
 
-    init: func ~withSource (=vocab, =fileName, =source) {
+    init: func ~withSource (=fileName, =source) {
         reader = StringReader new(source)
     }
 
-    parse: func {
+    parse: func -> Vocab {
+	    vocab := Vocab new()
+	    
         while(reader hasNext?()) {
             c := reader peek()
-            if(c whitespace?() || c == '#') {
-                skipWhitespace()
-            } else if(wordChar?(c)) {
+	        if(c whitespace?() || c == '#') {
+		        skipWhitespace()
+	        } else if(wordChar?(c)) {
                 definition := parseDefinition()
                 vocab definitions put(definition name, definition)
             } else {
                 error("Unexpected character: '%s', expected a word definition.", c)
             }
         }
+        
+        vocab
     }
 
     parseDefinition: func -> Definition {
