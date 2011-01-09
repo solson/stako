@@ -51,7 +51,7 @@ Parser: class {
         stackEffect := parseStackEffect()
         skipWhitespace()
 
-        body := Quotation new(parseUntil('.'))
+        body := Quotation new(parseUntil(';'))
 
         Definition new(word, type, stackEffect, body)
     }
@@ -374,7 +374,7 @@ Parser: class {
     }
 
     wordChar?: static func (c: Char) -> Bool {
-        c alphaNumeric?() || "`~!@$%^&*-_=+|;,<>/?" contains?(c)
+        c alphaNumeric?() || "`~!@$%^&*-_=+|.,<>/?" contains?(c)
     }
 }
 

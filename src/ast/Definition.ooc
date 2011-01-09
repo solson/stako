@@ -31,7 +31,7 @@ Definition: class extends Node {
                     buf append(' ')
             }
         }
-        buf append('.')
+        buf append(';')
         buf toString()
     }
 }
