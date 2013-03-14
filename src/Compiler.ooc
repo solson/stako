@@ -5,20 +5,20 @@ import structs/[List, ArrayList, HashMap], os/Process, io/File
 
 Compiler: class {
     vocab: Vocab
-    module: Module
-    target: Target
+    module: LModule
+    target: LTarget
 
     sizeType, objType, arrayType, wordType, strType, fixnumType, alienType,
-        wordFuncType, voidPtrType: Type
+        wordFuncType, voidPtrType: LType
     
     outputFile: String
     stakoLib: String
 
-    primitives := HashMap<String, Function> new()
+    primitives := HashMap<String, LFunction> new()
 
     init: func (=vocab, =outputFile, =stakoLib) {
-        module = Module new("stako")
-        target = Target new(module getTarget())
+        module = LModule new("stako")
+        target = LTarget new(module getTarget())
     }
 
     compile: func {
@@ -26,7 +26,7 @@ Compiler: class {
         
         Resolver new(vocab) resolve()
 
-        fns := HashMap<String, Function> new()
+        fns := HashMap<String, LFunction> new()
         for(defn in vocab definitions) {
             fns[defn name] = addWordFunc(defn)
         }
@@ -72,33 +72,33 @@ Compiler: class {
     
     addPrimitives: func {
 	    sizeType     = target intPointerType()
-        voidPtrType  = Type pointer(Type int8()) // C's void*
-        objType      = Type pointer(Type struct_([Type int32(), voidPtrType]))
-        arrayType    = Type pointer(Type struct_([Type pointer(objType), sizeType, sizeType]))
-        strType      = Type pointer(Type struct_([sizeType, Type pointer(Type int8())]))
-        wordFuncType = Type function(Type void_(), [arrayType])
-        wordType     = Type pointer(Type struct_([strType, Type pointer(wordFuncType), arrayType]))
+        voidPtrType  = LType pointer(LType int8()) // C's void*
+        objType      = LType pointer(LType struct_([LType int32(), voidPtrType]))
+        arrayType    = LType pointer(LType struct_([LType pointer(objType), sizeType, sizeType]))
+        strType      = LType pointer(LType struct_([sizeType, LType pointer(LType int8())]))
+        wordFuncType = LType function(LType void_(), [arrayType])
+        wordType     = LType pointer(LType struct_([strType, LType pointer(wordFuncType), arrayType]))
         fixnumType   = sizeType
-        alienType    = Type pointer(voidPtrType)
+        alienType    = LType pointer(voidPtrType)
 
-        module addTypeName("StakoObject", objType)
+        /*module addTypeName("StakoObject", objType)
         module addTypeName("StakoString", strType)
         module addTypeName("StakoWord", wordType)
         module addTypeName("StakoWordFunc", wordFuncType)
-        module addTypeName("StakoArray", arrayType)
+        module addTypeName("StakoArray", arrayType)*/
         
-        addPrimitive("StakoObject_new",              objType,      [Type int32(), voidPtrType])
-        addPrimitive("StakoObject_isType",           Type int32(), [objType, Type int32()])
+        addPrimitive("StakoObject_new",              objType,      [LType int32(), voidPtrType])
+        addPrimitive("StakoObject_isType",           Type int32(), [objType, LType int32()])
         addPrimitive("StakoObject_getData",          voidPtrType,  [objType])
-        addPrimitive("StakoObject_getType",          Type int32(), [objType])
+        addPrimitive("StakoObject_getType",          LType int32(), [objType])
 
-        addPrimitive("StakoString_new",              strType,      [Type pointer(Type int8()), sizeType])
-        addPrimitive("StakoString_newWithoutLength", voidPtrType,  [Type pointer(Type int8())])
-        addPrimitive("StakoString_toCString",        Type pointer(Type int8()), [strType])
-        addPrimitive("StakoString_copyToCString",    Type pointer(Type int8()), [strType])
+        addPrimitive("StakoString_new",              strType,      [LType pointer(LType int8()), sizeType])
+        addPrimitive("StakoString_newWithoutLength", voidPtrType,  [LType pointer(LType int8())])
+        addPrimitive("StakoString_toCString",        Type pointer(LType int8()), [strType])
+        addPrimitive("StakoString_copyToCString",    Type pointer(LType int8()), [strType])
         
         addPrimitive("StakoArray_new",               arrayType,    [sizeType])
-        addPrimitive("StakoArray_push",              Type void_(), [arrayType, objType])
+        addPrimitive("StakoArray_push",              LType void_(), [arrayType, objType])
         addPrimitive("StakoArray_pop",               objType,    [arrayType])
     }
 
@@ -112,12 +112,12 @@ Compiler: class {
              replaceAll("?", "__QUEST__") replaceAll("!", "__BANG__")
     }
 
-    callPrimitive: func (builder: Builder, name: String, args: Value[]) -> Value {
+    callPrimitive: func (builder: LBuilder, name: String, args: Value[]) -> Value {
 	    builder call(primitives[name], args)
     }
 
-    addWordFunc: func (defn: Definition) -> Function {
-        fn: Function
+    addWordFunc: func (defn: Definition) -> LFunction {
+        fn: LFunction
         match(defn type words[0]) {
             case "primitive" => 
                 fn = module addFunction("StakoPrimitive_" + primitivizeName(defn name), wordFuncType)
@@ -146,14 +146,14 @@ Compiler: class {
 	        Exception new("cfuncs should have zero or one output!") throw()
         }
         
-        inputs := ArrayList<Type> new()
+        inputs := ArrayList<LType> new()
         signs := ArrayList<Bool> new()
         for(input in defn stackEffect inputs) {
 	        (type, signed?) := translateCType(input)
 	        inputs add(type)
 	        signs add(signed?)
         }
-        cfunc := module addFunction(defn name, Type function(output, inputs))
+        cfunc := module addFunction(defn name, LType function(output, inputs))
         
         fn = module addFunction("Stako_" + defn name, wordFuncType)
         fn build(|builder, args|
@@ -182,9 +182,9 @@ Compiler: class {
 	        ret := builder call(cfunc, callArgs)
 	        
 	        // -- Deal with the return value ---
-	        if(ret type() == Type pointer(Type int8())) {
+	        if(ret type() == LType pointer(LType int8())) {
 	            push(builder, stack, newString(builder, ret))
-	        } else if(ret type() != Type void_()) {
+	        } else if(ret type() != LType void_()) {
 	            push(builder, stack, newFixnum(builder, ret))
 	        }
 	        builder ret()
