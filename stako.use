@@ -1,0 +1,5 @@
+Name: stako
+Description: stack-based programming language
+Requires: llvm
+SourcePath: src
+Main: stako.ooc
